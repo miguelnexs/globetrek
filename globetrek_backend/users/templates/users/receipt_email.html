@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        @page {
+            size: A4;
+            margin: 0;
+        }
+        body { 
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #333; 
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+        }
+        .container { 
+            width: 100%; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 40px; 
+            box-sizing: border-box;
+        }
+        .header { 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #111; 
+            padding-bottom: 20px; 
+            margin-bottom: 40px; 
+        }
+        .brand {
+            font-size: 24px;
+            font-weight: 800;
+            color: #111;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .invoice-title {
+            text-align: right;
+        }
+        .invoice-title h1 {
+            margin: 0;
+            font-size: 28px;
+            color: #111;
+            font-weight: 300;
+        }
+        .invoice-meta {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+        .content { 
+            margin-bottom: 40px; 
+        }
+        .greeting {
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+        .details-box {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .details-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+        }
+        .details-table td { 
+            padding: 12px 0; 
+            border-bottom: 1px solid #eee; 
+            vertical-align: top;
+        }
+        .details-table tr:last-child td {
+            border-bottom: none;
+        }
+        .label { 
+            font-weight: 600; 
+            color: #6b7280;
+            width: 40%; 
+        }
+        .value { 
+            text-align: right; 
+            width: 60%; 
+            color: #111827;
+            font-weight: 500;
+        }
+        .total-row td {
+            padding-top: 20px;
+            border-top: 2px solid #111;
+            font-size: 18px;
+            color: #000;
+        }
+        .footer { 
+            margin-top: 50px; 
+            font-size: 12px; 
+            text-align: center; 
+            color: #9ca3af; 
+            border-top: 1px solid #e5e7eb; 
+            padding-top: 20px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <table width="100%">
+                <tr>
+                    <td align="left" valign="bottom">
+                        <div class="brand">GlobeTrek</div>
+                    </td>
+                    <td align="right" valign="bottom">
+                        <div class="invoice-title">
+                            <h1>RECIBO</h1>
+                            <div class="invoice-meta">Fecha: {% now "d/m/Y" %}</div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="content">
+            <div class="greeting">
+                Hola <strong>{{ booking.first_name }}</strong>,<br>
+                Gracias por tu compra. Aquí tienes tu recibo y detalle de la reserva en <strong>{{ booking.hotel_name }}</strong>.
+            </div>
+            
+            <div class="details-box">
+                <h2 style="margin:0 0 10px 0;font-weight:800;font-size:22px;color:#0f172a;">Tus datos</h2>
+                <table class="details-table">
+                    <tr>
+                        <td class="label">Nombre</td>
+                        <td class="value">{{ booking.first_name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Correo</td>
+                        <td class="value">{{ booking.email }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Fecha de emisión</td>
+                        <td class="value">{% now "d/m/Y" %}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="details-box">
+                <h2 style="margin:0 0 10px 0;font-weight:800;font-size:22px;color:#0f172a;">Datos de la Reserva</h2>
+                <table class="details-table">
+                    <tr>
+                        <td class="label">Nombre del alojamiento</td>
+                        <td class="value">{{ booking.hotel_name }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Dirección del alojamiento</td>
+                        <td class="value">{{ booking.address }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Número de reserva</td>
+                        <td class="value">{{ booking.code }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Fecha de entrada</td>
+                        <td class="value">{{ booking.check_in_date }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Fecha de salida</td>
+                        <td class="value">{{ booking.check_out_date }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Habitaciones</td>
+                        <td class="value">{{ rooms }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Precio por noche</td>
+                        <td class="value">{{ rate_display }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Subtotal</td>
+                        <td class="value">{{ subtotal_display }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Noches</td>
+                        <td class="value">{% if nights %}{{ nights }}{% else %}-{% endif %}</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td class="label" style="color: #000;">Total</td>
+                        <td class="value" style="font-weight: 800;">{{ total_display }}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <p style="font-size: 14px; color: #666;">
+                Si tienes alguna pregunta sobre este recibo, por favor contáctanos respondiendo a este correo.
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>GlobeTrek Inc. - Tu compañero de viaje confiable</p>
+            <p>Este documento es un comprobante de pago válido.</p>
+            <p>Generado automáticamente el {% now "d/m/Y H:i" %}</p>
+        </div>
+    </div>
+</body>
+</html>

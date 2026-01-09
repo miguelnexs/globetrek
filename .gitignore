@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+dist-web/
+build/
+out/
+release/
+
+# Python / Django
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+db.sqlite3
+media/
+staticfiles/
+
+# Specific backend venv folders (detected in structure)
+globetrek_backend/Lib/
+globetrek_backend/Include/
+globetrek_backend/Scripts/
+globetrek_backend/pyvenv.cfg
+globetrek_backend/share/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# System
+.DS_Store
+Thumbs.db
+
+# Mobile
+.expo/
+*.jks
+*.keystore
+android/app/build/
+android/app/src/main/assets/
+ios/Pods/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

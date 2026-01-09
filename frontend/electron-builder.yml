@@ -1,0 +1,97 @@
+appId: com.assent.dashboard
+productName: Assent Dashboard
+copyright: Copyright © 2024 Assent Dashboard
+directories:
+  output: dist-electron
+  buildResources: build
+files:
+  - "out/**/*"
+  - "node_modules/**/*"
+  - "package.json"
+  - "!node_modules/.cache/**/*"
+  - "!node_modules/.vite/**/*"
+  - "!**/*.map"
+  - "!**/*.ts"
+  - "!src/**/*"
+  - "!build/**/*"
+  - "!dist/**/*"
+  - "!.git/**/*"
+  - "!.vscode/**/*"
+  - "!*.log"
+extraResources:
+  - from: "build/"
+    to: "build/"
+    filter:
+      - "**/*"
+asar: true
+compression: maximum
+removePackageScripts: true
+removePackageKeywords: true
+
+win:
+  target:
+    - target: dir
+      arch:
+        - x64
+  icon: resources/logo.png
+  requestedExecutionLevel: asInvoker
+  artifactName: "${productName} ${version} Portable"
+  publisherName: Assent Dashboard
+  verifyUpdateCodeSignature: false
+  sign: false
+  signDlls: false
+  forceCodeSigning: false
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: true
+  installerIcon: resources/logo.png
+  uninstallerIcon: resources/logo.png
+  installerHeaderIcon: resources/logo.png
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Assent Dashboard
+  deleteAppDataOnUninstall: false
+  include: build/installer.nsh
+  installerLanguages:
+    - es-ES
+    - en-US
+  language: 1033
+  displayLanguageSelector: true
+  perMachine: false
+  differentialPackage: false
+
+mac:
+  target: dmg
+  icon: resources/logo.png
+  category: public.app-category.business
+  artifactName: "${productName}-${version}.${ext}"
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+
+linux:
+  target: AppImage
+  icon: resources/logo.png
+  category: Office
+  artifactName: "${productName}-${version}.${ext}"
+  desktop:
+    Name: Localix Dashboard
+    Comment: Sistema de gestión empresarial Localix
+    Keywords: tienda;inventario;ventas;gestion
+    Categories: Office;Finance;
+    StartupNotify: true
+    Terminal: false
+    Type: Application
+
+publish:
+  provider: github
+  owner: tu-usuario
+  repo: tienda-app
+  private: false
+  releaseType: release
+  draft: false
+  prerelease: false
+  generateReleaseNotes: true
