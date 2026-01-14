@@ -16,7 +16,7 @@ const Header = () => {
     if (!v) return;
     setError("");
     try {
-      const res = await fetch(`http://127.0.0.1:8000/users/api/bookings/by-code/?code=${encodeURIComponent(v)}`);
+      const res = await fetch(`https://globetrek.cloud/api/bookings/by-code/?code=${encodeURIComponent(v)}`);
       const data: {
         detail?: string;
         first_name?: string;

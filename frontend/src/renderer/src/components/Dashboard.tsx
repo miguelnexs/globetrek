@@ -1,7 +1,31 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Bookings from './Bookings';
 import BookingCreate from './BookingCreate';
 import logoBlanco from '../logo.png';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 10
+    }
+  }
+};
 
 const Icon = ({ name, className = 'w-5 h-5' }) => {
   if (name === 'dashboard') {
@@ -176,13 +200,17 @@ const Topbar = ({ view, setView, role, onSignOut, mobileOpen, setMobileOpen }) =
 );
 
 const KPI = ({ label, value, delta, positive }) => (
-  <div className="bg-theme-surface border border-theme-border rounded-lg p-4">
+  <motion.div 
+    variants={itemVariants}
+    whileHover={{ scale: 1.02, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)" }}
+    className="bg-theme-surface border border-theme-border rounded-lg p-4 transition-colors duration-300"
+  >
     <div className="text-xs text-theme-textSecondary">{label}</div>
     <div className="text-2xl font-semibold text-theme-text mt-1">{value}</div>
     {typeof delta !== 'undefined' && (
       <div className={`text-xs mt-1 ${positive ? 'text-green-600' : 'text-red-600'}`}>{positive ? '▲' : '▼'} {delta}%</div>
     )}
-  </div>
+  </motion.div>
 );
 
 const SimpleLineChart = ({ data }) => {
@@ -197,9 +225,19 @@ const SimpleLineChart = ({ data }) => {
       })
       .join(' ');
   }, [data]);
+  
   return (
-    <svg viewBox="0 0 300 100" className="w-full h-24">
-      <polyline points={points} fill="none" stroke="currentColor" strokeWidth="2" className="text-theme-accent" />
+    <svg viewBox="0 0 300 100" className="w-full h-24 overflow-visible">
+      <motion.polyline 
+        points={points} 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2" 
+        className="text-theme-accent"
+        initial={{ pathLength: 0, opacity: 0 }}
+        animate={{ pathLength: 1, opacity: 1 }}
+        transition={{ duration: 1.5, ease: "easeInOut" }}
+      />
     </svg>
   );
 };
@@ -209,7 +247,13 @@ const SimpleBarChart = ({ data }) => {
   return (
     <div className="flex items-end gap-2 h-24">
       {data.map((d, i) => (
-        <div key={i} className="w-6 bg-theme-primary" style={{ height: `${(d / (max || 1)) * 100}%` }} />
+        <motion.div 
+          key={i} 
+          className="w-6 bg-theme-primary rounded-t-sm" 
+          initial={{ height: 0 }}
+          animate={{ height: `${(d / (max || 1)) * 100}%` }}
+          transition={{ duration: 0.8, delay: i * 0.1, ease: "backOut" }}
+        />
       ))}
     </div>
   );
@@ -227,48 +271,96 @@ const Sparkline = ({ data, colorClass = 'text-theme-accent' }) => {
     return pts;
   }, [data]);
   return (
-    <svg viewBox="0 0 120 36" className={`w-full h-9 ${colorClass}`}>
-      <polyline points={path} fill="none" stroke="currentColor" strokeWidth="2" />
+    <svg viewBox="0 0 120 36" className={`w-full h-9 ${colorClass} overflow-visible`}>
+      <motion.polyline 
+        points={path} 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2"
+        initial={{ pathLength: 0 }}
+        animate={{ pathLength: 1 }}
+        transition={{ duration: 1 }}
+      />
     </svg>
   );
 };
 
 const RichKPI = ({ icon, label, value, delta, positive, series }) => (
-  <div className="bg-theme-surface border border-theme-border rounded-lg p-4 flex flex-col gap-2">
-    <div className="flex items-center justify-between">
+  <motion.div 
+    variants={itemVariants}
+    whileHover={{ y: -5, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
+    className="bg-theme-surface border border-theme-border rounded-lg p-4 flex flex-col gap-2 relative overflow-hidden group"
+  >
+    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform scale-150 origin-top-right">
+      <Icon name={icon} className="w-16 h-16 text-theme-accent" />
+    </div>
+    
+    <div className="flex items-center justify-between relative z-10">
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full bg-theme-background/40 text-theme-text flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full bg-theme-background/40 text-theme-text flex items-center justify-center shadow-sm">
           <Icon name={icon} className="w-5 h-5" />
         </div>
-        <div className="text-xs text-theme-textSecondary">{label}</div>
+        <div className="text-xs text-theme-textSecondary font-medium">{label}</div>
       </div>
       {typeof delta !== 'undefined' && (
-        <div className={`text-xs ${positive ? 'text-green-600' : 'text-red-600'}`}>{positive ? '▲' : '▼'} {delta}%</div>
+        <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${positive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+          {positive ? '▲' : '▼'} {delta}%
+        </div>
       )}
     </div>
-    <div className="text-2xl font-semibold text-theme-text">{value}</div>
+    <div className="text-2xl font-bold text-theme-text relative z-10 tracking-tight">{value}</div>
     {Array.isArray(series) && series.length > 1 && (
-      <Sparkline data={series} />
+      <div className="relative z-10 mt-2">
+        <Sparkline data={series} />
+      </div>
     )}
-  </div>
+  </motion.div>
 );
 
 const ChartsPanel = ({ seriesA, seriesB }) => (
-  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-    <div className="bg-theme-surface border border-theme-border rounded-lg p-4">
-      <div className="text-sm text-theme-text mb-2">Tendencia de reservas</div>
+  <motion.div 
+    variants={containerVariants}
+    initial="hidden"
+    animate="visible"
+    className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+  >
+    <motion.div 
+      variants={itemVariants}
+      className="bg-theme-surface border border-theme-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-300"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-sm font-semibold text-theme-text">Tendencia de reservas</div>
+        <select className="bg-theme-background/50 border border-theme-border text-xs rounded px-2 py-1 text-theme-textSecondary outline-none focus:border-theme-accent">
+          <option>Últimos 7 días</option>
+          <option>Este mes</option>
+        </select>
+      </div>
       <SimpleLineChart data={seriesA} />
-    </div>
-    <div className="bg-theme-surface border border-theme-border rounded-lg p-4">
-      <div className="text-sm text-theme-text mb-2">Reservas por región</div>
+    </motion.div>
+    <motion.div 
+      variants={itemVariants}
+      className="bg-theme-surface border border-theme-border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow duration-300"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-sm font-semibold text-theme-text">Reservas por región</div>
+        <button className="text-xs text-theme-accent hover:underline">Ver detalle</button>
+      </div>
       <SimpleBarChart data={seriesB} />
-      <div className="mt-3 flex flex-wrap gap-2 text-xs">
+      <div className="mt-4 flex flex-wrap gap-2 text-xs">
         {['Europa','América','Asia','África','Oceanía','Local'].slice(0, Math.max(seriesB.length, 0)).map((r, i) => (
-          <span key={i} className="px-2 py-1 rounded bg-theme-background/30 text-theme-text">{r}</span>
+          <motion.span 
+            key={i} 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 + (i * 0.05) }}
+            className="px-2 py-1 rounded-md bg-theme-background/50 text-theme-textSecondary border border-theme-border/50"
+          >
+            {r}
+          </motion.span>
         ))}
       </div>
-    </div>
-  </div>
+    </motion.div>
+  </motion.div>
 );
 
 const StatsPanel = ({ stats, seriesA }) => {
@@ -276,15 +368,21 @@ const StatsPanel = ({ stats, seriesA }) => {
   const receipts = Number(stats.receipts || 0);
   const avgTicket = bookings > 0 ? Math.round((receipts / bookings) * 100) / 100 : 0;
   const deltaBookings = seriesA.length > 1 ? Math.round(((seriesA[seriesA.length - 1] - seriesA[seriesA.length - 2]) / (seriesA[seriesA.length - 2] || 1)) * 100) : 0;
+  
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <motion.div 
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+    >
       <RichKPI icon="ticket" label="Reservas totales" value={bookings} delta={Math.abs(deltaBookings)} positive={deltaBookings >= 0} series={seriesA} />
-      <RichKPI icon="money" label="Ingresos estimados" value={`$ ${receipts}`} series={seriesA} />
-      <RichKPI icon="trend" label="Ticket promedio" value={avgTicket ? `$ ${avgTicket}` : 'N/D'} />
+      <RichKPI icon="money" label="Ingresos estimados" value={`$ ${receipts.toLocaleString()}`} series={seriesA} />
+      <RichKPI icon="trend" label="Ticket promedio" value={avgTicket ? `$ ${avgTicket.toLocaleString()}` : 'N/D'} />
       <RichKPI icon="map" label="Regiones activas" value={Math.max(seriesA.length, 1)} />
       <RichKPI icon="cancel" label="Cancelaciones" value="N/D" />
-      <RichKPI icon="dashboard" label="Empleados" value={Number(stats.employees || 0)} />
-    </div>
+      <RichKPI icon="users" label="Empleados activos" value={Number(stats.employees || 0)} />
+    </motion.div>
   );
 };
 
@@ -304,7 +402,7 @@ const UsersManager = ({ token, apiBase, role }) => {
     setMsg(null);
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/users/api/users/`, { headers: authHeaders(token) });
+      const res = await fetch(`${apiBase}/api/users/`, { headers: authHeaders(token) });
       let data;
       try {
         data = await res.json();
@@ -331,7 +429,7 @@ const UsersManager = ({ token, apiBase, role }) => {
     setMsg(null);
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/users/api/users/`, {
+      const res = await fetch(`${apiBase}/api/users/`, {
         method: 'POST',
         headers: authHeaders(token),
         body: JSON.stringify({ ...form }),
@@ -351,7 +449,7 @@ const UsersManager = ({ token, apiBase, role }) => {
   const removeEmployee = async (id) => {
     setMsg(null);
     try {
-      const res = await fetch(`${apiBase}/users/api/users/${id}/`, { method: 'DELETE', headers: authHeaders(token) });
+      const res = await fetch(`${apiBase}/api/users/${id}/`, { method: 'DELETE', headers: authHeaders(token) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || data.message || 'No se pudo eliminar');
       setMsg({ type: 'success', text: 'Empleado eliminado' });
@@ -378,7 +476,7 @@ const UsersManager = ({ token, apiBase, role }) => {
     e.preventDefault();
     setMsg(null);
     try {
-      const res = await fetch(`${apiBase}/users/api/users/${editing.id}/`, {
+      const res = await fetch(`${apiBase}/api/users/${editing.id}/`, {
         method: 'PATCH',
         headers: authHeaders(token),
         body: JSON.stringify(editForm),
@@ -425,139 +523,222 @@ const UsersManager = ({ token, apiBase, role }) => {
     : [];
 
   return (
-    <div className="space-y-4">
-      {msg && !msg.text.includes('Solo administradores pueden gestionar usuarios') && (
-        <div className={`p-3 rounded text-sm ${msg.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}>
-          {msg.text}
-        </div>
-      )}
-      <div className="bg-theme-surface border border-theme-border rounded p-4">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-4"
+    >
+      <AnimatePresence>
+        {msg && !msg.text.includes('Solo administradores pueden gestionar usuarios') && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className={`p-3 rounded text-sm ${msg.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}
+          >
+            {msg.text}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <motion.div 
+        variants={itemVariants}
+        className="bg-theme-surface border border-theme-border rounded-lg p-6 shadow-sm"
+      >
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-theme-text font-semibold">Crear nuevo empleado</div>
-            <div className="text-theme-textSecondary text-sm">Añade un usuario con datos básicos</div>
+            <div className="text-theme-text font-semibold text-lg">Crear nuevo empleado</div>
+            <div className="text-theme-textSecondary text-sm mt-1">Añade un usuario con datos básicos para que pueda acceder al sistema</div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setCreateOpen(true)} className="px-4 py-2 rounded btn-brand">Nuevo empleado</button>
-            <button onClick={loadEmployees} className="px-3 py-2 rounded text-xs bg-theme-background/30 text-theme-text hover:bg-theme-background/40">Recargar</button>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setCreateOpen(true)} 
+              className="px-4 py-2 rounded btn-brand font-medium shadow-lg shadow-theme-primary/20"
+            >
+              Nuevo empleado
+            </motion.button>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={loadEmployees} 
+              className="px-3 py-2 rounded text-xs bg-theme-background/30 text-theme-text hover:bg-theme-background/40 border border-theme-border"
+            >
+              Recargar
+            </motion.button>
           </div>
         </div>
-      </div>
-      <div className="bg-theme-surface border border-theme-border rounded p-4">
-        <div className="flex items-center justify-between mb-4">
+      </motion.div>
+
+      <motion.div 
+        variants={itemVariants}
+        className="bg-theme-surface border border-theme-border rounded-lg p-6 shadow-sm"
+      >
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <div className="text-theme-text font-semibold">Empleados</div>
-            <div className="text-theme-textSecondary text-sm">Gestiona y edita usuarios existentes</div>
+            <div className="text-theme-text font-semibold text-lg">Empleados</div>
+            <div className="text-theme-textSecondary text-sm mt-1">Gestiona y edita usuarios existentes</div>
           </div>
           <div className="flex items-center gap-2">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar por nombre, usuario, email, departamento..."
-              className="px-3 py-2 rounded bg-theme-background/20 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 w-56"
-            />
+            <div className="relative">
+              <Icon name="users" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-theme-textSecondary w-4 h-4" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar por nombre, usuario..."
+                className="pl-9 pr-4 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 w-64 transition-all"
+              />
+            </div>
           </div>
         </div>
-        <ul className="space-y-2">
-          {filteredEmployees.map((emp) => (
-            <li key={emp.id} className="flex items-center justify-between bg-theme-background/20 border border-theme-border rounded p-3 text-sm text-theme-text">
-              <span className="flex-1 flex items-center gap-3">
-                <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-theme-background/40 text-theme-text font-medium">
-                  {String(emp.username || '?').slice(0,1).toUpperCase()}
-                </span>
-                <span className="flex-1">
-                  <span className="font-medium">{emp.username}</span>
-                  <span className="text-theme-textSecondary ml-2">{emp.first_name} {emp.last_name}</span>
-                  <span className="text-theme-textMuted ml-2 text-xs">{emp.email}</span>
-                  {(emp.department || emp.position) && (
-                    <span className="ml-2 text-xs px-2 py-1 rounded bg-theme-background/30 text-theme-textSecondary">
-                      {emp.department || 'Sin depto.'} · {emp.position || 'Sin cargo'}
+        <motion.ul layout className="space-y-3">
+          <AnimatePresence>
+            {filteredEmployees.map((emp) => (
+              <motion.li 
+                layout
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                whileHover={{ scale: 1.01, backgroundColor: "rgba(var(--color-surface-rgb), 0.8)" }}
+                key={emp.id} 
+                className="flex items-center justify-between bg-theme-background/20 border border-theme-border rounded-lg p-4 text-sm text-theme-text hover:shadow-md transition-all duration-200"
+              >
+                <span className="flex-1 flex items-center gap-4">
+                  <div className="relative">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-theme-primary to-theme-accent text-white font-bold shadow-lg shadow-theme-primary/20">
+                      {String(emp.username || '?').slice(0,1).toUpperCase()}
                     </span>
-                  )}
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-theme-surface rounded-full"></div>
+                  </div>
+                  <span className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-base">{emp.username}</span>
+                      {(emp.department || emp.position) && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-theme-background/40 text-theme-textSecondary border border-theme-border/50">
+                          {emp.department || 'General'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <span className="text-theme-textSecondary">{emp.first_name} {emp.last_name}</span>
+                      <span className="text-theme-textMuted text-xs">•</span>
+                      <span className="text-theme-textMuted text-xs">{emp.email}</span>
+                    </div>
+                  </span>
                 </span>
-              </span>
-              <div className="flex items-center gap-2">
-                <button onClick={() => startEdit(emp)} className="px-3 py-1 text-xs rounded btn-brand">Editar</button>
-                <button onClick={() => removeEmployee(emp.id)} className="px-3 py-1 text-xs rounded bg-red-600 hover:bg-red-700 text-white">Eliminar</button>
-              </div>
-            </li>
-          ))}
+                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => startEdit(emp)} className="px-3 py-1.5 text-xs rounded-md btn-brand">Editar</motion.button>
+                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => removeEmployee(emp.id)} className="px-3 py-1.5 text-xs rounded-md bg-red-500/10 text-red-600 border border-red-500/20 hover:bg-red-500/20">Eliminar</motion.button>
+                </div>
+              </motion.li>
+            ))}
+          </AnimatePresence>
           {Array.isArray(employees) && employees.length === 0 && (
-            <li className="text-theme-textSecondary text-sm flex items-center gap-2">
-              <Icon name="users" className="w-4 h-4" />
-              No hay empleados registrados.
-            </li>
+            <motion.li initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-theme-textSecondary text-sm flex items-center gap-2 p-8 justify-center flex-col border-2 border-dashed border-theme-border rounded-lg">
+              <Icon name="users" className="w-8 h-8 opacity-50 mb-2" />
+              <span>No hay empleados registrados.</span>
+            </motion.li>
           )}
           {Array.isArray(employees) && employees.length > 0 && filteredEmployees.length === 0 && (
-            <li className="text-theme-textSecondary text-sm">No hay resultados para “{query}”.</li>
+            <motion.li initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-theme-textSecondary text-sm p-8 text-center">
+              No hay resultados para “{query}”.
+            </motion.li>
           )}
-        </ul>
-      </div>
-      {createOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-theme-surface border border-theme-border rounded p-4 w-full max-w-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="text-theme-text font-semibold">Nuevo empleado</div>
-                <div className="text-theme-textSecondary text-sm">Completa los datos para crear el usuario</div>
-              </div>
-              <button onClick={() => setCreateOpen(false)} className="px-3 py-2 rounded bg-theme-background/30 text-theme-text hover:bg-theme-background/40">Cerrar</button>
-            </div>
-            <form onSubmit={createEmployee} className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {['username','password','first_name','last_name','email','department','position'].map((field) => (
-                <div key={field} className="flex flex-col gap-1">
-                  <label htmlFor={`create_${field}`} className="text-xs text-theme-textSecondary">{fieldLabels[field] || field}</label>
-                  <input
-                    id={`create_${field}`}
-                    type={field === 'password' ? 'password' : field === 'email' ? 'email' : 'text'}
-                    name={field}
-                    value={form[field]}
-                    onChange={handleChange}
-                    required={field === 'username' || field === 'password'}
-                    className="px-3 py-2 rounded bg-theme-background/20 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40"
-                    placeholder={`Ingresa ${fieldLabels[field] || field}`}
-                  />
+        </motion.ul>
+      </motion.div>
+      <AnimatePresence>
+        {createOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-theme-surface border border-theme-border rounded-xl p-6 w-full max-w-2xl shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-6 border-b border-theme-border pb-4">
+                <div>
+                  <div className="text-theme-text font-bold text-xl">Nuevo empleado</div>
+                  <div className="text-theme-textSecondary text-sm mt-1">Completa los datos para crear el usuario</div>
                 </div>
-              ))}
-              <div className="md:col-span-3 flex items-center justify-end gap-2">
-                <button type="button" onClick={() => setCreateOpen(false)} className="px-3 py-2 rounded bg-theme-background/30 text-theme-text hover:bg-theme-background/40">Cancelar</button>
-                <button type="submit" disabled={loading} className="px-4 py-2 rounded btn-brand disabled:opacity-50">
-                  {loading ? 'Creando...' : 'Crear empleado'}
+                <button onClick={() => setCreateOpen(false)} className="p-2 rounded-full hover:bg-theme-background/50 transition-colors">
+                  <Icon name="cancel" className="w-6 h-6 text-theme-textSecondary" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {editing && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-theme-surface border border-theme-border rounded p-4 w-full max-w-lg">
-            <div className="text-theme-text font-semibold mb-2">Editar empleado</div>
-            <div className="text-theme-textSecondary text-sm mb-4">{editing.username}</div>
-            <form onSubmit={submitEdit} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {['first_name','last_name','email','department','position','password'].map((field) => (
-                <div key={field} className="flex flex-col gap-1">
-                  <label htmlFor={`edit_${field}`} className="text-xs text-theme-textSecondary">{fieldLabels[field] || field}</label>
-                  <input
-                    id={`edit_${field}`}
-                    type={field === 'password' ? 'password' : field === 'email' ? 'email' : 'text'}
-                    name={field}
-                    value={editForm[field]}
-                    onChange={handleEditChange}
-                    className="px-3 py-2 rounded bg-theme-background/20 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40"
-                    placeholder={field === 'password' ? 'Nueva contraseña (opcional)' : fieldLabels[field] || field}
-                  />
+              <form onSubmit={createEmployee} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {['username','password','first_name','last_name','email','department','position'].map((field) => (
+                  <div key={field} className={`flex flex-col gap-1.5 ${field === 'email' ? 'md:col-span-2' : ''}`}>
+                    <label htmlFor={`create_${field}`} className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide ml-1">{fieldLabels[field] || field}</label>
+                    <input
+                      id={`create_${field}`}
+                      type={field === 'password' ? 'password' : field === 'email' ? 'email' : 'text'}
+                      name={field}
+                      value={form[field]}
+                      onChange={handleChange}
+                      required={field === 'username' || field === 'password'}
+                      className="px-4 py-2.5 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/50 focus:border-theme-accent/50 transition-all placeholder-theme-textMuted/50"
+                      placeholder={`Ingresa ${fieldLabels[field] || field}`}
+                    />
+                  </div>
+                ))}
+                <div className="md:col-span-2 flex items-center justify-end gap-3 mt-4 pt-4 border-t border-theme-border">
+                  <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 rounded-lg bg-theme-background/30 text-theme-text hover:bg-theme-background/50 transition-colors">Cancelar</button>
+                  <button type="submit" disabled={loading} className="px-6 py-2 rounded-lg btn-brand disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-theme-primary/20">
+                    {loading ? 'Creando...' : 'Crear empleado'}
+                  </button>
                 </div>
-              ))}
-              <div className="col-span-1 md:col-span-2 flex items-center justify-end gap-2 mt-2">
-                <button type="button" onClick={() => setEditing(null)} className="px-3 py-2 rounded bg-theme-background/30 text-theme-text hover:bg-theme-background/40">Cancelar</button>
-                <button type="submit" className="px-3 py-2 rounded btn-brand">Guardar cambios</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {editing && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-theme-surface border border-theme-border rounded-xl p-6 w-full max-w-lg shadow-2xl"
+            >
+              <div className="text-theme-text font-bold text-xl mb-1">Editar empleado</div>
+              <div className="text-theme-textSecondary text-sm mb-6 pb-4 border-b border-theme-border">Editando a <span className="font-semibold text-theme-primary">{editing.username}</span></div>
+              <form onSubmit={submitEdit} className="grid grid-cols-1 gap-4">
+                {['first_name','last_name','email','department','position','password'].map((field) => (
+                  <div key={field} className="flex flex-col gap-1.5">
+                    <label htmlFor={`edit_${field}`} className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide ml-1">{fieldLabels[field] || field}</label>
+                    <input
+                      id={`edit_${field}`}
+                      type={field === 'password' ? 'password' : field === 'email' ? 'email' : 'text'}
+                      name={field}
+                      value={editForm[field]}
+                      onChange={handleEditChange}
+                      className="px-4 py-2.5 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/50 focus:border-theme-accent/50 transition-all"
+                      placeholder={field === 'password' ? 'Nueva contraseña (opcional)' : fieldLabels[field] || field}
+                    />
+                  </div>
+                ))}
+                <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-theme-border">
+                  <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 rounded-lg bg-theme-background/30 text-theme-text hover:bg-theme-background/50 transition-colors">Cancelar</button>
+                  <button type="submit" className="px-6 py-2 rounded-lg btn-brand shadow-lg shadow-theme-primary/20">Guardar cambios</button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
@@ -573,7 +754,7 @@ const DashboardView = ({ stats, seriesA, seriesB }) => (
 );
 
 const Dashboard = ({ token, role, onSignOut }) => {
-  const apiBase = 'http://127.0.0.1:8000';
+  const apiBase = 'https://globetrek.cloud';
   const [view, setView] = useState('dashboard');
   const [stats, setStats] = useState({ bookings: 0, receipts: 0, employees: 0, admins: 0 });
   const [seriesA, setSeriesA] = useState([3, 5, 4, 6, 8, 7, 9]);
@@ -583,7 +764,7 @@ const Dashboard = ({ token, role, onSignOut }) => {
 
   useEffect(() => {
     const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-    fetch(`${apiBase}/users/api/stats/`, { headers })
+    fetch(`${apiBase}/api/stats/`, { headers })
       .then(async (res) => {
         let data;
         try { data = await res.json(); } catch { data = null; }
@@ -653,33 +834,100 @@ const Dashboard = ({ token, role, onSignOut }) => {
     <div className="min-h-screen bg-theme-background">
       <Topbar view={view} setView={setView} role={role} onSignOut={onSignOut} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
       <main className="max-w-6xl mx-auto px-4 md:px-6 py-6 space-y-6 mobile-touch mobile-smooth-scroll mobile-text-adjust safe-area-bottom">
-        <section className="rounded-2xl p-6 bg-theme-surface/60 border border-theme-border flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <motion.section 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="rounded-2xl p-6 bg-gradient-to-r from-theme-surface/80 to-theme-surface/40 backdrop-blur-md border border-theme-border flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm"
+        >
           <div className="text-theme-text">
-            <div className="text-2xl md:text-3xl font-bold">Bienvenido a GlobeTrek</div>
-            <div className="text-sm md:text-base text-theme-textSecondary mt-1">Organiza reservas, usuarios y más desde una interfaz limpia y agradable.</div>
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-theme-text to-theme-textSecondary"
+            >
+              Bienvenido a GlobeTrek
+            </motion.div>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="text-sm md:text-base text-theme-textSecondary mt-1"
+            >
+              Organiza reservas, usuarios y más desde una interfaz limpia y agradable.
+            </motion.div>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => setView('bookings')} className="px-4 py-2 rounded btn-brand">Ver reservas</button>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setView('bookings')} 
+              className="px-4 py-2 rounded btn-brand shadow-lg shadow-theme-primary/20"
+            >
+              Ver reservas
+            </motion.button>
             {(role === 'admin' || role === 'super_admin') && (
-              <button onClick={() => setView('users')} className="px-4 py-2 rounded bg-theme-background/30 text-theme-text hover:bg-theme-background/40">Gestionar usuarios</button>
+              <motion.button 
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setView('users')} 
+                className="px-4 py-2 rounded bg-theme-background/30 text-theme-text hover:bg-theme-background/40 border border-theme-border"
+              >
+                Gestionar usuarios
+              </motion.button>
             )}
           </div>
-        </section>
-        {view === 'dashboard' && (
-          <div data-charts-section>
-            <StatsPanel stats={stats} seriesA={seriesA} />
-            {chartsVisible && <ChartsPanel seriesA={seriesA} seriesB={seriesB} />}
-          </div>
-        )}
-        {view === 'users' && (
-          <UsersManager token={token} apiBase={apiBase} role={role} />
-        )}
-        {view === 'bookings' && (
-          <Bookings token={token} apiBase={apiBase} role={role} setView={setView} />
-        )}
-        {view === 'booking_create' && (
-          <BookingCreate token={token} apiBase={apiBase} role={role} setView={setView} />
-        )}
+        </motion.section>
+
+        <AnimatePresence mode="wait">
+          {view === 'dashboard' && (
+            <motion.div 
+              key="dashboard"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ duration: 0.3 }}
+              data-charts-section
+            >
+              <StatsPanel stats={stats} seriesA={seriesA} />
+              {chartsVisible && <div className="mt-6"><ChartsPanel seriesA={seriesA} seriesB={seriesB} /></div>}
+            </motion.div>
+          )}
+          {view === 'users' && (
+            <motion.div
+              key="users"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <UsersManager token={token} apiBase={apiBase} role={role} />
+            </motion.div>
+          )}
+          {view === 'bookings' && (
+            <motion.div
+              key="bookings"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Bookings token={token} apiBase={apiBase} role={role} setView={setView} />
+            </motion.div>
+          )}
+          {view === 'booking_create' && (
+            <motion.div
+              key="booking_create"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+            >
+              <BookingCreate token={token} apiBase={apiBase} role={role} setView={setView} />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

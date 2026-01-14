@@ -93,7 +93,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (!token) return;
     const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-    fetch(`${apiBase}/users/api/stats/`, { headers })
+    fetch(`${apiBase}/api/stats/`, { headers })
       .then(async (res) => {
         let data;
         try { data = await res.json(); } catch { data = null; }

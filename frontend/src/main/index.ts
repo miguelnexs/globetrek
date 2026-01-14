@@ -1,7 +1,11 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { autoUpdater } from 'electron-updater'
 import icon from '../../resources/logo.png?asset'
+
+autoUpdater.autoDownload = false
+autoUpdater.autoInstallOnAppQuit = true
 
 function createWindow(): void {
   // Create the browser window.
@@ -72,6 +76,42 @@ app.whenReady().then(() => {
   ipcMain.on('ping', () => console.log('pong'))
 
   createWindow()
+
+  // Auto-update logic
+  if (!is.dev) {
+    autoUpdater.checkForUpdates()
+  }
+
+  // Update events
+  autoUpdater.on('update-available', () => {
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'Actualización disponible',
+      message: 'Hay una nueva versión disponible. ¿Quieres descargarla ahora?',
+      buttons: ['Sí', 'No']
+    }).then((result) => {
+      if (result.response === 0) {
+        autoUpdater.downloadUpdate()
+      }
+    })
+  })
+
+  autoUpdater.on('update-downloaded', () => {
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'Actualización lista',
+      message: 'La actualización se ha descargado. Se instalará al reiniciar la aplicación. ¿Reiniciar ahora?',
+      buttons: ['Reiniciar', 'Más tarde']
+    }).then((result) => {
+      if (result.response === 0) {
+        autoUpdater.quitAndInstall(false, true)
+      }
+    })
+  })
+
+  autoUpdater.on('error', (err) => {
+    console.error('Error en auto-updater:', err)
+  })
 
   app.on('activate', function () {
     // On macOS it's common to re-create a window in the app when the

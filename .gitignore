@@ -9,6 +9,8 @@ dist-web/
 build/
 out/
 release/
+dist-electron/
+*.asar
 
 # Python / Django
 __pycache__/

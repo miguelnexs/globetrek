@@ -1,9 +1,9 @@
-appId: com.assent.dashboard
-productName: Assent Dashboard
-copyright: Copyright © 2024 Assent Dashboard
+appId: com.globetrek.app
+productName: GlobeTrek
+copyright: Copyright © 2026 GlobeTrek
 directories:
   output: dist-electron
-  buildResources: build
+  buildResources: resources
 files:
   - "out/**/*"
   - "node_modules/**/*"
@@ -13,14 +13,13 @@ files:
   - "!**/*.map"
   - "!**/*.ts"
   - "!src/**/*"
-  - "!build/**/*"
-  - "!dist/**/*"
+  - "!dist-web/**/*"
   - "!.git/**/*"
   - "!.vscode/**/*"
   - "!*.log"
 extraResources:
-  - from: "build/"
-    to: "build/"
+  - from: "resources/"
+    to: "resources/"
     filter:
       - "**/*"
 asar: true
@@ -30,13 +29,15 @@ removePackageKeywords: true
 
 win:
   target:
-    - target: dir
+    - target: nsis
       arch:
         - x64
-  icon: resources/logo.png
+    - target: portable
+      arch:
+        - x64
   requestedExecutionLevel: asInvoker
-  artifactName: "${productName} ${version} Portable"
-  publisherName: Assent Dashboard
+  artifactName: "${productName}-Setup-${version}.${ext}"
+  publisherName: GlobeTrek
   verifyUpdateCodeSignature: false
   sign: false
   signDlls: false
@@ -46,52 +47,38 @@ nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   allowElevation: true
-  installerIcon: resources/logo.png
-  uninstallerIcon: resources/logo.png
-  installerHeaderIcon: resources/logo.png
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: Assent Dashboard
+  shortcutName: GlobeTrek
   deleteAppDataOnUninstall: false
-  include: build/installer.nsh
   installerLanguages:
     - es-ES
     - en-US
-  language: 1033
+  language: 3082
   displayLanguageSelector: true
   perMachine: false
   differentialPackage: false
 
 mac:
   target: dmg
-  icon: resources/logo.png
   category: public.app-category.business
   artifactName: "${productName}-${version}.${ext}"
   hardenedRuntime: true
   gatekeeperAssess: false
-  entitlements: build/entitlements.mac.plist
-  entitlementsInherit: build/entitlements.mac.plist
 
 linux:
   target: AppImage
-  icon: resources/logo.png
   category: Office
   artifactName: "${productName}-${version}.${ext}"
   desktop:
-    Name: Localix Dashboard
-    Comment: Sistema de gestión empresarial Localix
-    Keywords: tienda;inventario;ventas;gestion
-    Categories: Office;Finance;
+    Name: GlobeTrek
+    Comment: Sistema de gestión GlobeTrek
+    Keywords: gestion;viajes;empleados
+    Categories: Office;Business;
     StartupNotify: true
     Terminal: false
     Type: Application
 
 publish:
-  provider: github
-  owner: tu-usuario
-  repo: tienda-app
-  private: false
-  releaseType: release
-  draft: false
-  prerelease: false
-  generateReleaseNotes: true
+  provider: generic
+  url: https://globetrek.cloud/updates/

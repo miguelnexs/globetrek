@@ -11,7 +11,7 @@ const App = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
 
-  const apiBase = 'http://127.0.0.1:8000';
+  const apiBase = 'https://globetrek.cloud';
   const authHeaders = (tkn) => ({
     'Content-Type': 'application/json',
     ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}),
@@ -29,7 +29,7 @@ const App = () => {
     setLoading(true);
     setMessage(null);
     try {
-      const res = await fetch('http://127.0.0.1:8000/users/api/auth/login/', {
+      const res = await fetch(`${apiBase}/api/auth/login/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -44,7 +44,7 @@ const App = () => {
       setMessage({ type: 'success', text: 'Inicio de sesión exitoso' });
       // Obtener rol del usuario
       try {
-        const meRes = await fetch(`${apiBase}/users/api/auth/me/`, {
+        const meRes = await fetch(`${apiBase}/api/auth/me/`, {
           method: 'GET',
           headers: authHeaders(data.access),
         });
@@ -85,7 +85,7 @@ const App = () => {
     const loadEmployees = async () => {
       setEmpMessage(null);
       try {
-        const res = await fetch(`${apiBase}/users/api/users/`, {
+        const res = await fetch(`${apiBase}/api/users/`, {
           method: 'GET',
           headers: authHeaders(token),
         });
@@ -107,7 +107,7 @@ const App = () => {
       setEmpLoading(true);
       setEmpMessage(null);
       try {
-        const res = await fetch(`${apiBase}/users/api/users/`, {
+        const res = await fetch(`${apiBase}/api/users/`, {
           method: 'POST',
           headers: authHeaders(token),
           body: JSON.stringify({
@@ -143,7 +143,7 @@ const App = () => {
     const handleDelete = async (id) => {
       setEmpMessage(null);
       try {
-        const res = await fetch(`${apiBase}/users/api/users/${id}/`, {
+        const res = await fetch(`${apiBase}/api/users/${id}/`, {
           method: 'DELETE',
           headers: authHeaders(token),
         });
@@ -327,7 +327,7 @@ const App = () => {
       setCreating(true);
       setFeedback(null);
       try {
-        const res = await fetch(`${apiBase}/users/api/users/`, {
+        const res = await fetch(`${apiBase}/api/users/`, {
           method: 'POST',
           headers: authHeaders(token),
           body: JSON.stringify({

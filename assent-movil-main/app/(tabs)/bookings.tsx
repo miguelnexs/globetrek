@@ -3,11 +3,13 @@ import { View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput } from 'r
 import { Colors } from '../../constants/Colors';
 import { useAuth } from '../../context/AuthContext';
 import { API_URL } from '../../constants/Config';
+import { useRouter } from 'expo-router';
 
 const apiBase = API_URL;
 
 export default function BookingsScreen() {
   const { token, role } = useAuth();
+  const router = useRouter();
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<any>(null);
@@ -29,7 +31,7 @@ export default function BookingsScreen() {
     setLoading(true);
     setMsg(null);
     try {
-      const url = new URL(`${apiBase}/users/api/bookings/`);
+      const url = new URL(`${apiBase}/api/bookings/`);
       if (q) url.searchParams.set('q', q);
       if (ordering) url.searchParams.set('ordering', ordering);
       url.searchParams.set('page', page.toString());
@@ -53,7 +55,7 @@ export default function BookingsScreen() {
   const performDelete = async (id: number) => {
     setMsg(null);
     try {
-      const res = await fetch(`${apiBase}/users/api/bookings/${id}/`, { method: 'DELETE', headers: authHeaders(token!) });
+      const res = await fetch(`${apiBase}/api/bookings/${id}/`, { method: 'DELETE', headers: authHeaders(token!) });
       let data = null;
       try { data = await res.json(); } catch {}
       if (!res.ok) throw new Error((data && (data.detail || data.message)) || 'No se pudo eliminar');
@@ -67,7 +69,17 @@ export default function BookingsScreen() {
   return (
     <View style={styles.container}>
       {msg && <Text style={[styles.msg, msg.type === 'success' ? styles.msgSuccess : styles.msgError]}>{msg.text}</Text>}
-      
+      <View style={[styles.rowBetween, { marginBottom: 12 }]}>
+        <Text style={styles.screenTitle}>Reservas</Text>
+        {canManage && (
+          <TouchableOpacity
+            onPress={() => router.push('/(tabs)/create-booking')}
+            style={[styles.btn, { backgroundColor: Colors.dark.success }]}
+          >
+            <Text style={styles.btnText}>Nueva reserva</Text>
+          </TouchableOpacity>
+        )}
+      </View>
       <View style={styles.card}>
         <View style={[styles.rowBetween, { marginBottom: 10 }]}>
           <Text style={styles.cardTitle}>Reservas</Text>
@@ -138,6 +150,11 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: Colors.dark.background,
+  },
+  screenTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.dark.text,
   },
   card: { backgroundColor: Colors.dark.card, borderWidth: 1, borderColor: Colors.dark.border, borderRadius: 12, padding: 12, marginBottom: 12, flex: 1 },
   cardTitle: { color: Colors.dark.text, fontSize: 14, fontWeight: '600' },

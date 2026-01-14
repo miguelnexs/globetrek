@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import logoNegro from '../negro.png';
 
 const currency = (v, code = 'EUR') => {
@@ -93,7 +94,7 @@ const Bookings = ({ token, apiBase, role, setView }) => {
     setLoading(true);
     setMsg(null);
     try {
-      const url = new URL(`${apiBase}/users/api/bookings/`);
+      const url = new URL(`${apiBase}/api/bookings/`);
       if (q) url.searchParams.set('q', q);
       if (ordering) url.searchParams.set('ordering', ordering);
       url.searchParams.set('page', page.toString());
@@ -188,7 +189,7 @@ const Bookings = ({ token, apiBase, role, setView }) => {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => { if (v !== null && v !== undefined) fd.append(k, v); });
       fd.set('room_type', normalizeRoomType(form.room_type));
-      const res = await fetch(`${apiBase}/users/api/bookings/`, {
+      const res = await fetch(`${apiBase}/api/bookings/`, {
         method: 'POST',
         headers: authHeaders(token),
         body: fd,
@@ -799,7 +800,7 @@ const Bookings = ({ token, apiBase, role, setView }) => {
       }
       if (editing.first_image instanceof File) fd.append('first_image', editing.first_image);
       if (editing.second_image instanceof File) fd.append('second_image', editing.second_image);
-      const res = await fetch(`${apiBase}/users/api/bookings/${editing.id}/`, {
+      const res = await fetch(`${apiBase}/api/bookings/${editing.id}/`, {
         method: 'PATCH',
         headers: authHeaders(token),
         body: fd,
@@ -819,7 +820,7 @@ const Bookings = ({ token, apiBase, role, setView }) => {
   const performDelete = async (id) => {
     setMsg(null);
     try {
-      const res = await fetch(`${apiBase}/users/api/bookings/${id}/`, { method: 'DELETE', headers: authHeaders(token) });
+      const res = await fetch(`${apiBase}/api/bookings/${id}/`, { method: 'DELETE', headers: authHeaders(token) });
       let data = null;
       try { data = await res.json(); } catch {}
       if (!res.ok) throw new Error((data && (data.detail || data.message)) || 'No se pudo eliminar');
@@ -854,7 +855,7 @@ const Bookings = ({ token, apiBase, role, setView }) => {
       const fd = new FormData();
       fd.append('receipt_pdf', receiptBlob, receiptName);
       fd.append('reservation_pdf', bookingBlob, bookingName);
-      const res = await fetch(`${apiBase}/users/api/bookings/${b.id}/send-receipt/`, {
+      const res = await fetch(`${apiBase}/api/bookings/${b.id}/send-receipt/`, {
         method: 'POST',
         headers: authHeaders(token),
         body: fd,
@@ -868,23 +869,50 @@ const Bookings = ({ token, apiBase, role, setView }) => {
   };
 
   return (
-    <div className="space-y-4">
-      {msg && (
-        <div className={`p-3 rounded text-sm ${msg.type === 'success' ? 'bg-green-600/20 text-green-200 border border-green-500/40' : 'bg-red-600/20 text-red-200 border border-red-500/40'}`}>
-          {msg.text}
-        </div>
-      )}
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      className="space-y-4"
+    >
+      <AnimatePresence>
+        {msg && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className={`p-3 rounded text-sm ${msg.type === 'success' ? 'bg-green-600/20 text-green-200 border border-green-500/40' : 'bg-red-600/20 text-red-200 border border-red-500/40'}`}
+          >
+            {msg.text}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex items-center justify-end">
-        <button onClick={() => setView('booking_create')} className="px-3 py-2 rounded btn-brand">Nueva reserva</button>
+        <motion.button 
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setView('booking_create')} 
+          className="px-4 py-2 rounded btn-brand shadow-lg shadow-theme-primary/20 font-medium"
+        >
+          Nueva reserva
+        </motion.button>
       </div>
 
-      <div className="bg-theme-surface border border-theme-border rounded p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-theme-text font-medium">Reservas</div>
-          <div className="flex items-center gap-2">
-            <input value={q} onChange={(e) => setQ(e.target.value)} className="px-2 py-1 rounded bg-theme-surface text-theme-text border border-theme-border text-sm" placeholder="Buscar..." />
-            <select value={ordering} onChange={(e) => setOrdering(e.target.value)} className="px-2 py-1 rounded bg-theme-surface text-theme-text border border-theme-border text-sm">
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        className="bg-theme-surface border border-theme-border rounded-lg p-6 shadow-sm"
+      >
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+          <div className="text-theme-text font-bold text-lg">Reservas</div>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-textSecondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <input value={q} onChange={(e) => setQ(e.target.value)} className="pl-9 pr-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border text-sm focus:outline-none focus:ring-2 focus:ring-theme-accent/40 w-full md:w-auto" placeholder="Buscar..." />
+            </div>
+            <select value={ordering} onChange={(e) => setOrdering(e.target.value)} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border text-sm focus:outline-none focus:ring-2 focus:ring-theme-accent/40">
               <option value="-created_at">Más recientes</option>
               <option value="first_name">Nombre (A-Z)</option>
               <option value="hotel_name">Hotel (A-Z)</option>
@@ -892,176 +920,215 @@ const Bookings = ({ token, apiBase, role, setView }) => {
               <option value="check_out_date">Check-out</option>
               <option value="room_value">Valor</option>
             </select>
-            <button onClick={() => { setPage(1); loadBookings(); }} className="px-2 py-1 text-xs rounded btn-brand">Aplicar</button>
+            <motion.button 
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => { setPage(1); loadBookings(); }} 
+              className="px-3 py-2 text-sm rounded-lg bg-theme-background/50 text-theme-text border border-theme-border hover:bg-theme-background/70"
+            >
+              Aplicar
+            </motion.button>
           </div>
         </div>
-        <div className="overflow-auto">
+        <div className="overflow-auto rounded-lg border border-theme-border">
           <table className="min-w-full text-sm text-theme-text">
             <thead>
-              <tr className="text-left bg-theme-primary text-white">
+              <tr className="text-left bg-theme-background/50 text-theme-textSecondary font-medium">
                 {['Nombre','Código','Correo','Acciones'].map((h) => (
-                  <th key={h} className="px-3 py-2 border-b border-theme-border">{h}</th>
+                  <th key={h} className="px-4 py-3 border-b border-theme-border">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {list.map((b) => (
-                <tr key={b.id} className="border-b border-theme-border">
-                  <td className="px-3 py-2">{b.first_name}</td>
-                  <td className="px-3 py-2">{b.code || '-'}</td>
-                  <td className="px-3 py-2">{b.email}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => startEdit(b)} className="px-2 py-1 text-xs rounded btn-brand">Editar</button>
-                      <button onClick={() => downloadReceipt(b)} className="px-2 py-1 text-xs rounded bg-theme-accent text-white">Recibo</button>
-                      <button onClick={() => downloadBookingPdf(b)} className="px-2 py-1 text-xs rounded bg-theme-primary text-white">Reserva</button>
-                      <button onClick={() => handleSendEmail(b)} className="px-2 py-1 text-xs rounded bg-purple-600 hover:bg-purple-700 text-white">Email</button>
-                      {canDelete && (
-                        <button onClick={() => setConfirmDelete(b)} className="px-2 py-1 text-xs rounded bg-red-600 hover:bg-red-700 text-white">Eliminar</button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+            <tbody className="divide-y divide-theme-border">
+              <AnimatePresence>
+                {list.map((b, i) => (
+                  <motion.tr 
+                    key={b.id} 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="hover:bg-theme-background/20 transition-colors"
+                  >
+                    <td className="px-4 py-3 font-medium">{b.first_name}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{b.code || '-'}</td>
+                    <td className="px-4 py-3 text-theme-textSecondary">{b.email}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <motion.button whileHover={{ scale: 1.1 }} onClick={() => startEdit(b)} className="px-2 py-1 text-xs rounded btn-brand">Editar</motion.button>
+                        <motion.button whileHover={{ scale: 1.1 }} onClick={() => downloadReceipt(b)} className="px-2 py-1 text-xs rounded bg-theme-accent text-white">Recibo</motion.button>
+                        <motion.button whileHover={{ scale: 1.1 }} onClick={() => downloadBookingPdf(b)} className="px-2 py-1 text-xs rounded bg-theme-primary text-white">Reserva</motion.button>
+                        <motion.button whileHover={{ scale: 1.1 }} onClick={() => handleSendEmail(b)} className="px-2 py-1 text-xs rounded bg-purple-600 hover:bg-purple-700 text-white">Email</motion.button>
+                        {canDelete && (
+                          <motion.button whileHover={{ scale: 1.1 }} onClick={() => setConfirmDelete(b)} className="px-2 py-1 text-xs rounded bg-red-500/10 text-red-600 border border-red-500/20 hover:bg-red-500/20">Eliminar</motion.button>
+                        )}
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))}
+              </AnimatePresence>
               {list.length === 0 && (
-                <tr><td className="px-3 py-2 text-theme-textSecondary" colSpan={4}>No hay reservas registradas.</td></tr>
+                <tr><td className="px-4 py-8 text-center text-theme-textSecondary" colSpan={4}>No hay reservas registradas.</td></tr>
               )}
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between mt-3 text-sm">
+        <div className="flex items-center justify-between mt-4 text-sm">
           <div className="text-theme-textSecondary">Total: {total}</div>
           <div className="flex items-center gap-2">
-            <button disabled={page <= 1} onClick={() => { setPage(Math.max(1, page - 1)); loadBookings(); }} className="px-2 py-1 rounded btn-brand disabled:opacity-50">Anterior</button>
-            <span className="text-gray-300">{page}/{totalPages}</span>
-            <button disabled={page >= totalPages} onClick={() => { setPage(Math.min(totalPages, page + 1)); loadBookings(); }} className="px-2 py-1 rounded btn-brand disabled:opacity-50">Siguiente</button>
+            <button disabled={page <= 1} onClick={() => { setPage(Math.max(1, page - 1)); loadBookings(); }} className="px-3 py-1.5 rounded-lg border border-theme-border hover:bg-theme-background/30 disabled:opacity-50 transition-colors">Anterior</button>
+            <span className="text-theme-text font-medium px-2">{page} / {totalPages}</span>
+            <button disabled={page >= totalPages} onClick={() => { setPage(Math.min(totalPages, page + 1)); loadBookings(); }} className="px-3 py-1.5 rounded-lg border border-theme-border hover:bg-theme-background/30 disabled:opacity-50 transition-colors">Siguiente</button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {editing && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-theme-surface border border-theme-border rounded p-4 w-full max-w-3xl">
-            <div className="text-theme-text font-medium mb-3">Editar reserva: {editing.first_name} - {editing.hotel_name}</div>
-            <form onSubmit={submitEdit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1">
-                <label className="text-theme-textSecondary text-sm">Primer nombre</label>
-                <input type="text" value={editing.first_name || ''} onChange={(e) => setEditing((x) => ({ ...x, first_name: e.target.value }))} className="px-3 py-2 rounded bg-theme-surface text-theme-text border border-theme-border transition" />
+      <AnimatePresence>
+        {editing && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-theme-surface border border-theme-border rounded-xl p-6 w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar"
+            >
+              <div className="text-theme-text font-bold text-xl mb-1">Editar reserva</div>
+              <div className="text-theme-textSecondary text-sm mb-6 pb-4 border-b border-theme-border">
+                {editing.first_name} - <span className="font-medium text-theme-primary">{editing.hotel_name}</span>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-theme-textSecondary text-sm">Correo</label>
-                <input type="email" value={editing.email || ''} onChange={(e) => setEditing((x) => ({ ...x, email: e.target.value }))} className="px-3 py-2 rounded bg-theme-surface text-theme-text border border-theme-border transition" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-theme-textSecondary text-sm">Dirección</label>
-                <input type="text" value={editing.address || ''} onChange={(e) => setEditing((x) => ({ ...x, address: e.target.value }))} className="px-3 py-2 rounded bg-theme-surface text-theme-text border border-theme-border transition" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-gray-300 text-sm">Check-in</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-textSecondary">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                  </span>
-                  <input type="date" value={editing.check_in_date || ''} onChange={(e) => setEditing((x) => ({ ...x, check_in_date: e.target.value }))} className="pl-10 px-3 py-2 rounded-lg bg-theme-surface text-theme-text border border-theme-border transition" />
+              <form onSubmit={submitEdit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Primer nombre</label>
+                  <input type="text" value={editing.first_name || ''} onChange={(e) => setEditing((x) => ({ ...x, first_name: e.target.value }))} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Correo</label>
+                  <input type="email" value={editing.email || ''} onChange={(e) => setEditing((x) => ({ ...x, email: e.target.value }))} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Dirección</label>
+                  <input type="text" value={editing.address || ''} onChange={(e) => setEditing((x) => ({ ...x, address: e.target.value }))} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Check-in</label>
+                  <div className="relative">
+                    <input type="date" value={editing.check_in_date || ''} onChange={(e) => setEditing((x) => ({ ...x, check_in_date: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Check-out</label>
+                  <div className="relative">
+                    <input type="date" value={editing.check_out_date || ''} onChange={(e) => setEditing((x) => ({ ...x, check_out_date: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Hotel</label>
+                  <input type="text" value={editing.hotel_name || ''} onChange={(e) => setEditing((x) => ({ ...x, hotel_name: e.target.value }))} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Tipo de habitación</label>
+                  <input
+                    type="text"
+                    value={editing.room_type || ''}
+                    onChange={(e) => setEditing((x) => ({ ...x, room_type: e.target.value }))}
+                    placeholder="Ej: individual, doble, triple, suite"
+                    className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Ubicación</label>
+                  <input type="text" value={editing.location || ''} onChange={(e) => setEditing((x) => ({ ...x, location: e.target.value }))} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Teléfono</label>
+                  <input type="text" value={editing.phone || ''} onChange={(e) => setEditing((x) => ({ ...x, phone: e.target.value }))} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Valor habitación</label>
+                  <input type="number" value={editing.room_value || ''} onChange={(e) => setEditing((x) => ({ ...x, room_value: e.target.value }))} min={0} step="0.01" className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Habitaciones</label>
+                  <input type="number" value={editing.rooms_count || 1} onChange={(e) => setEditing((x) => ({ ...x, rooms_count: e.target.value }))} min={1} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Huéspedes</label>
+                  <input type="number" value={editing.guests_count || 1} onChange={(e) => setEditing((x) => ({ ...x, guests_count: e.target.value }))} min={1} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Moneda</label>
+                  <select value={editing.currency_code || 'EUR'} onChange={(e) => setEditing((x) => ({ ...x, currency_code: e.target.value }))} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition">
+                    <option value="EUR">EUR (€)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="COP">COP ($)</option>
+                    <option value="MXN">MXN ($)</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Imagen huésped</label>
+                  <input type="file" onChange={(e) => setEditing((x) => ({ ...x, first_image: e.target.files?.[0] || null }))} accept="image/*" className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Imagen hotel</label>
+                  <input type="file" onChange={(e) => setEditing((x) => ({ ...x, second_image: e.target.files?.[0] || null }))} accept="image/*" className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border" />
+                </div>
+
+                <div className="col-span-1 md:col-span-2 lg:col-span-3 flex items-center justify-end gap-3 mt-4 pt-4 border-t border-theme-border">
+                  <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 rounded-lg bg-theme-background/30 text-theme-text hover:bg-theme-background/50 transition-colors">Cancelar</button>
+                  <button type="submit" className="px-6 py-2 rounded-lg btn-brand shadow-lg shadow-theme-primary/20">Guardar cambios</button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {confirmDelete && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-md bg-theme-surface border border-theme-border rounded-xl overflow-hidden shadow-2xl"
+            >
+              <div className="bg-gradient-to-r from-red-600 to-pink-600 p-6">
+                <div className="flex items-center gap-3 text-white">
+                  <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 4h.01M9.402 2.01a2 2 0 00-1.732 1l-5.196 9a2 2 0 000 2l5.196 9a2 2 0 001.732 1h9.196a2 2 0 001.732-1l-5.196-9a2 2 0 000-2l-5.196-9a2 2 0 00-1.732-1H9.402z"/></svg>
+                  </div>
+                  <div className="font-bold text-lg">Confirmar eliminación</div>
                 </div>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-gray-300 text-sm">Check-out</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-theme-textSecondary">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3M3 11h18M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                  </span>
-                  <input type="date" value={editing.check_out_date || ''} onChange={(e) => setEditing((x) => ({ ...x, check_out_date: e.target.value }))} className="pl-10 px-3 py-2 rounded-lg bg-theme-surface text-theme-text border border-theme-border transition" />
+              <div className="p-6 text-theme-text space-y-4">
+                <p>¿Estás seguro de eliminar esta reserva? Esta acción no se puede deshacer.</p>
+                <div className="text-sm bg-theme-background/30 border border-theme-border rounded-lg p-4 space-y-2">
+                  <div className="flex justify-between"><span className="text-theme-textSecondary">Nombre:</span> <span className="font-medium">{confirmDelete.first_name}</span></div>
+                  <div className="flex justify-between"><span className="text-theme-textSecondary">Hotel:</span> <span className="font-medium">{confirmDelete.hotel_name}</span></div>
+                  <div className="flex justify-between"><span className="text-theme-textSecondary">Código:</span> <span className="font-mono">{confirmDelete.code || '-'}</span></div>
                 </div>
               </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-theme-textSecondary text-sm">Hotel</label>
-                <input type="text" value={editing.hotel_name || ''} onChange={(e) => setEditing((x) => ({ ...x, hotel_name: e.target.value }))} className="px-3 py-2 rounded bg-theme-surface text-theme-text border border-theme-border transition" />
+              <div className="p-6 flex items-center justify-end gap-3 border-t border-theme-border bg-theme-background/20">
+                <button className="px-4 py-2 rounded-lg bg-theme-background/50 hover:bg-theme-background/70 text-theme-text transition-colors" onClick={() => setConfirmDelete(null)}>Cancelar</button>
+                <button className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/20 transition-colors" onClick={async () => { const id = confirmDelete.id; setConfirmDelete(null); await performDelete(id); }}>Eliminar</button>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-theme-textSecondary text-sm">Tipo de habitación</label>
-                <input
-                  type="text"
-                  value={editing.room_type || ''}
-                  onChange={(e) => setEditing((x) => ({ ...x, room_type: e.target.value }))}
-                  placeholder="Ej: individual, doble, triple, suite"
-                  className="px-3 py-2 rounded bg-theme-surface text-theme-text border border-theme-border transition"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-theme-textSecondary text-sm">Ubicación</label>
-                <input type="text" value={editing.location || ''} onChange={(e) => setEditing((x) => ({ ...x, location: e.target.value }))} className="px-3 py-2 rounded bg-theme-surface text-theme-text border border-theme-border transition" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-theme-textSecondary text-sm">Teléfono</label>
-                <input type="text" value={editing.phone || ''} onChange={(e) => setEditing((x) => ({ ...x, phone: e.target.value }))} className="px-3 py-2 rounded bg-theme-surface text-theme-text border border-theme-border transition" />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-theme-textSecondary text-sm">Valor habitación (por noche)</label>
-                <input type="number" value={editing.room_value || ''} onChange={(e) => setEditing((x) => ({ ...x, room_value: e.target.value }))} min={0} step="0.01" className="px-3 py-2 rounded bg-theme-surface text-theme-text border border-theme-border transition" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-theme-textSecondary text-sm">Habitaciones</label>
-                <input type="number" value={editing.rooms_count || 1} onChange={(e) => setEditing((x) => ({ ...x, rooms_count: e.target.value }))} min={1} className="px-3 py-2 rounded bg-theme-surface text-theme-text border border-theme-border transition" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-theme-textSecondary text-sm">Huéspedes</label>
-                <input type="number" value={editing.guests_count || 1} onChange={(e) => setEditing((x) => ({ ...x, guests_count: e.target.value }))} min={1} className="px-3 py-2 rounded bg-theme-surface text-theme-text border border-theme-border transition" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-theme-textSecondary text-sm">Moneda</label>
-                <select value={editing.currency_code || 'EUR'} onChange={(e) => setEditing((x) => ({ ...x, currency_code: e.target.value }))} className="px-3 py-2 rounded bg-theme-surface text-theme-text border border-theme-border transition">
-                  <option value="EUR">EUR (€)</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="COP">COP ($)</option>
-                  <option value="MXN">MXN ($)</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-theme-textSecondary text-sm">Imagen huésped</label>
-                <input type="file" onChange={(e) => setEditing((x) => ({ ...x, first_image: e.target.files?.[0] || null }))} accept="image/*" className="px-3 py-2 rounded bg-gray-700 text-white border border-gray-600" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-theme-textSecondary text-sm">Imagen hotel</label>
-                <input type="file" onChange={(e) => setEditing((x) => ({ ...x, second_image: e.target.files?.[0] || null }))} accept="image/*" className="px-3 py-2 rounded bg-gray-700 text-white border border-gray-600" />
-              </div>
-
-              <div className="col-span-1 md:col-span-2 lg:col-span-3 flex items-center justify-end gap-2 mt-2">
-                <button type="button" onClick={() => setEditing(null)} className="px-3 py-2 rounded bg-gray-600 hover:bg-gray-700 text-white">Cancelar</button>
-                <button type="submit" className="px-3 py-2 rounded btn-brand">Guardar cambios</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {confirmDelete && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
-          <div className="w-full max-w-md bg-gray-800 border border-white/10 rounded-xl overflow-hidden shadow-xl">
-            <div className="bg-gradient-to-r from-red-600/80 to-pink-600/80 p-4">
-              <div className="flex items-center gap-3 text-white">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3m0 4h.01M9.402 2.01a2 2 0 00-1.732 1l-5.196 9a2 2 0 000 2l5.196 9a2 2 0 001.732 1h9.196a2 2 0 001.732-1l-5.196-9a2 2 0 000-2l-5.196-9a2 2 0 00-1.732-1H9.402z"/></svg>
-                <div className="font-semibold">Confirmar eliminación</div>
-              </div>
-            </div>
-            <div className="p-4 text-gray-200 space-y-2">
-              <p>¿Estás seguro de eliminar esta reserva? Esta acción no se puede deshacer.</p>
-              <div className="text-sm bg-white/5 border border-white/10 rounded p-3">
-                <div><span className="text-gray-400">Nombre:</span> {confirmDelete.first_name}</div>
-                <div><span className="text-gray-400">Hotel:</span> {confirmDelete.hotel_name}</div>
-                <div><span className="text-gray-400">Código:</span> {confirmDelete.code || '-'}</div>
-              </div>
-            </div>
-            <div className="p-4 flex items-center justify-end gap-2">
-              <button className="px-3 py-2 rounded bg-gray-600 hover:bg-gray-700 text-white" onClick={() => setConfirmDelete(null)}>Cancelar</button>
-              <button className="px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white" onClick={async () => { const id = confirmDelete.id; setConfirmDelete(null); await performDelete(id); }}>Eliminar</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 

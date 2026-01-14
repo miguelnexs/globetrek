@@ -263,9 +263,9 @@ const downloadBookingAdmin = async (b: Booking) => {
     if (/^data:/.test(u)) return u; // ya es Data URL
     const abs = (() => {
       if (/^https?:/.test(u)) return u;
-      if (u.startsWith('/')) return `http://127.0.0.1:8000${u}`;
+      if (u.startsWith('/')) return `https://globetrek.cloud${u}`;
       const withMedia = u.startsWith('media/') ? u : `media/${u}`;
-      return `http://127.0.0.1:8000/${withMedia}`;
+      return `https://globetrek.cloud/${withMedia}`;
     })();
     try {
       const res = await fetch(abs);
@@ -514,9 +514,9 @@ const Download = () => {
       if (/^data:/.test(u)) return u;
       const abs = (() => {
         if (/^https?:/.test(u)) return u;
-        if (u.startsWith('/')) return `http://127.0.0.1:8000${u}`;
+        if (u.startsWith('/')) return `https://globetrek.cloud${u}`;
         const withMedia = u.startsWith('media/') ? u : `media/${u}`;
-        return `http://127.0.0.1:8000/${withMedia}`;
+        return `https://globetrek.cloud/${withMedia}`;
       })();
       try {
         const res = await fetch(abs);
@@ -550,7 +550,7 @@ const Download = () => {
       const fd = new FormData();
       fd.append('receipt_pdf', receiptBlob, receiptName);
       fd.append('reservation_pdf', bookingBlob, bookingName);
-      const res = await fetch(`http://127.0.0.1:8000/users/api/bookings/${booking.id}/send-receipt/`, {
+      const res = await fetch(`https://globetrek.cloud/api/bookings/${booking.id}/send-receipt/`, {
         method: 'POST',
         body: fd,
       });

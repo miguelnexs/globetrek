@@ -28,7 +28,7 @@ export default function UsersScreen() {
     setLoading(true);
     setMsg(null);
     try {
-      const url = new URL(`${apiBase}/users/api/users/`);
+      const url = new URL(`${apiBase}/api/users/`);
       if (q) url.searchParams.set('q', q);
       url.searchParams.set('page', page.toString());
       url.searchParams.set('page_size', pageSize.toString());
@@ -51,7 +51,7 @@ export default function UsersScreen() {
   const performDelete = async (id: number) => {
     setMsg(null);
     try {
-      const res = await fetch(`${apiBase}/users/api/users/${id}/`, { method: 'DELETE', headers: authHeaders(token!) });
+      const res = await fetch(`${apiBase}/api/users/${id}/`, { method: 'DELETE', headers: authHeaders(token!) });
       let data = null;
       try { data = await res.json(); } catch {}
       if (!res.ok) throw new Error((data && (data.detail || data.message)) || 'No se pudo eliminar');
