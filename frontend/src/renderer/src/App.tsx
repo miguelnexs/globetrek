@@ -12,7 +12,7 @@ const App = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
 
-  const apiBase = 'http://127.0.0.1:8000';
+  const apiBase = 'https://globetrek.cloud';
   const authHeaders = (tkn) => ({
     'Content-Type': 'application/json',
     ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}),
@@ -423,42 +423,46 @@ const App = () => {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-theme-background">
       <TitleBar />
-      <div className="flex-1 overflow-auto custom-scrollbar flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="flex-1 overflow-auto custom-scrollbar flex items-center justify-center p-4 md:p-8 relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-900/20 blur-[100px]"></div>
-          <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-900/20 blur-[100px]"></div>
+          <div className="absolute top-[-10%] left-[-10%] w-[60%] md:w-[40%] h-[40%] rounded-full bg-blue-900/20 blur-[80px] md:blur-[100px]"></div>
+          <div className="absolute bottom-[-10%] right-[-10%] w-[60%] md:w-[40%] h-[40%] rounded-full bg-indigo-900/20 blur-[80px] md:blur-[100px]"></div>
         </div>
 
-        <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 bg-theme-surface/90 backdrop-blur-sm border border-theme-border rounded-2xl shadow-2xl overflow-hidden min-h-[600px]">
+        <div className="w-full max-w-md lg:max-w-5xl grid grid-cols-1 lg:grid-cols-2 bg-theme-surface/90 backdrop-blur-md border border-theme-border rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden min-h-[500px] md:min-h-[600px] relative z-10">
           {/* Lado Izquierdo: Login */}
-          <div className="p-8 md:p-12 flex flex-col justify-center bg-theme-surface/50 text-theme-text relative z-10">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-theme-text mb-2">¡Hola de nuevo! 👋</h1>
-              <p className="text-theme-textSecondary">Ingresa tus credenciales para acceder a GlobeTrek.</p>
+          <div className="p-6 sm:p-8 md:p-12 flex flex-col justify-center bg-theme-surface/50 text-theme-text relative z-10">
+            <div className="mb-6 md:mb-8 text-center lg:text-left">
+              <h1 className="text-2xl md:text-3xl font-bold text-theme-text mb-2 tracking-tight">¡Hola de nuevo! 👋</h1>
+              <p className="text-sm md:text-base text-theme-textSecondary">Ingresa tus credenciales para acceder a GlobeTrek.</p>
             </div>
 
             {message && (
-              <div className={`mb-6 p-4 rounded-lg text-sm flex items-center gap-2 ${
+              <div className={`mb-6 p-4 rounded-xl text-sm flex items-center gap-3 animate-fade-in ${
                 message.type === 'success' 
                   ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
                   : 'bg-red-500/10 text-red-400 border border-red-500/20'
               }`}>
-                {message.type === 'error' && (
+                {message.type === 'error' ? (
                   <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
+                ) : (
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
                 )}
-                {message.text}
+                <span className="font-medium">{message.text}</span>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-theme-textSecondary mb-1.5">Usuario</label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-theme-textMuted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5">
+              <div className="space-y-1.5">
+                <label className="block text-xs md:text-sm font-bold text-theme-textSecondary uppercase tracking-wider ml-1">Usuario</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors group-focus-within:text-blue-500 text-theme-textMuted">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                   </div>
@@ -468,19 +472,19 @@ const App = () => {
                     onChange={(e) => setUsername(e.target.value)}
                     required
                     minLength={4}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-theme-border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-theme-text placeholder-theme-textMuted bg-theme-surface/50"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-theme-border focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all text-theme-text placeholder-theme-textMuted bg-theme-surface/50 text-sm md:text-base"
                     placeholder="Ej. admin_viajes"
                   />
                 </div>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-sm font-medium text-theme-textSecondary">Contraseña</label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between ml-1">
+                  <label className="block text-xs md:text-sm font-bold text-theme-textSecondary uppercase tracking-wider">Contraseña</label>
                 </div>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-theme-textMuted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none transition-colors group-focus-within:text-blue-500 text-theme-textMuted">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                   </div>
@@ -489,30 +493,34 @@ const App = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-theme-border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-theme-text placeholder-theme-textMuted bg-theme-surface/50"
+                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-theme-border focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all text-theme-text placeholder-theme-textMuted bg-theme-surface/50 text-sm md:text-base"
                     placeholder="••••••••"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input id="remember-me" name="remember-me" type="checkbox" className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-theme-textSecondary">Recordarme</label>
-                </div>
-                <div className="text-sm">
-                  <a href="#" className="font-medium text-blue-600 hover:text-blue-500">¿Olvidaste tu contraseña?</a>
+              <div className="flex items-center justify-between px-1">
+                <label className="flex items-center cursor-pointer group">
+                  <div className="relative">
+                    <input id="remember-me" name="remember-me" type="checkbox" className="sr-only" />
+                    <div className="w-10 h-5 bg-theme-border rounded-full shadow-inner transition-colors group-hover:bg-theme-textMuted"></div>
+                    <div className="dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform"></div>
+                  </div>
+                  <span className="ml-3 text-xs md:text-sm text-theme-textSecondary font-medium">Recordarme</span>
+                </label>
+                <div className="text-xs md:text-sm">
+                  <a href="#" className="font-bold text-blue-500 hover:text-blue-400 transition-colors">¿Olvidaste tu contraseña?</a>
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl shadow-xl text-sm md:text-base font-bold text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-[0.98] shadow-blue-500/20"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -522,8 +530,8 @@ const App = () => {
               </button>
             </form>
             
-            <div className="mt-8 text-center">
-              <p className="text-xs text-gray-400">© {new Date().getFullYear()} GlobeTrek Systems. Todos los derechos reservados.</p>
+            <div className="mt-8 text-center border-t border-theme-border pt-6">
+              <p className="text-[10px] md:text-xs text-theme-textMuted uppercase tracking-widest font-bold">© {new Date().getFullYear()} GlobeTrek Systems</p>
             </div>
           </div>
 
@@ -531,39 +539,42 @@ const App = () => {
           <div className="hidden lg:flex relative bg-blue-600 flex-col justify-center items-center text-white p-12 overflow-hidden">
             {/* Fondo decorativo con gradiente y patrones */}
             <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-900 z-0"></div>
-            <div className="absolute inset-0 opacity-20 z-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '30px 30px' }}></div>
+            <div className="absolute inset-0 opacity-10 z-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
             
             {/* Círculos decorativos */}
-            <div className="absolute -top-24 -right-24 w-64 h-64 rounded-full bg-blue-500 opacity-20 blur-3xl"></div>
-            <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-indigo-500 opacity-20 blur-3xl"></div>
+            <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-blue-400/20 blur-3xl"></div>
+            <div className="absolute -bottom-24 -left-24 w-96 h-96 rounded-full bg-indigo-400/20 blur-3xl"></div>
 
-            <div className="relative z-10 text-center max-w-md">
-              <div className="mb-6 flex justify-center">
-                 {/* Icono de avión o mundo estilizado */}
-                 <div className="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20 shadow-xl">
-                   <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="relative z-10 text-center max-w-sm">
+              <div className="mb-8 flex justify-center">
+                 <motion.div 
+                   animate={{ y: [0, -10, 0] }}
+                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                   className="w-24 h-24 bg-white/10 rounded-3xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-2xl"
+                 >
+                   <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                    </svg>
-                 </div>
+                 </motion.div>
               </div>
               
-              <h2 className="text-3xl font-bold mb-4 tracking-tight">Explora el mundo con <span className="text-blue-200">GlobeTrek</span></h2>
-              <p className="text-blue-100 text-lg leading-relaxed mb-8">
-                La plataforma integral para gestionar experiencias inolvidables. Conecta destinos, administra reservas y lleva tu agencia al siguiente nivel.
+              <h2 className="text-3xl font-extrabold mb-4 tracking-tight leading-tight">Explora el mundo con <span className="text-blue-300">GlobeTrek</span></h2>
+              <p className="text-blue-100/80 text-lg leading-relaxed mb-10">
+                La plataforma integral para gestionar experiencias inolvidables. Conecta destinos y lleva tu agencia al siguiente nivel.
               </p>
 
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="p-3 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10">
-                  <div className="font-bold text-xl">150+</div>
-                  <div className="text-xs text-blue-200 uppercase tracking-wide mt-1">Países</div>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10 shadow-lg">
+                  <div className="font-black text-xl">150+</div>
+                  <div className="text-[10px] text-blue-200 uppercase tracking-widest font-bold mt-1">Países</div>
                 </div>
-                <div className="p-3 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10">
-                  <div className="font-bold text-xl">24/7</div>
-                  <div className="text-xs text-blue-200 uppercase tracking-wide mt-1">Soporte</div>
+                <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10 shadow-lg">
+                  <div className="font-black text-xl">24/7</div>
+                  <div className="text-[10px] text-blue-200 uppercase tracking-widest font-bold mt-1">Soporte</div>
                 </div>
-                <div className="p-3 bg-white/5 rounded-lg backdrop-blur-sm border border-white/10">
-                  <div className="font-bold text-xl">10k+</div>
-                  <div className="text-xs text-blue-200 uppercase tracking-wide mt-1">Viajeros</div>
+                <div className="p-4 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10 shadow-lg">
+                  <div className="font-black text-xl">10k+</div>
+                  <div className="text-[10px] text-blue-200 uppercase tracking-widest font-bold mt-1">Viajes</div>
                 </div>
               </div>
             </div>

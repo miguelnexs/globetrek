@@ -80,12 +80,6 @@ class PrivateNote(models.Model):
         return f"Note({self.author.username})"
 
 
-ROOM_TYPE_CHOICES = (
-    ('single', 'Individual'),
-    ('double', 'Doble'),
-    ('suite', 'Suite'),
-)
-
 class Booking(models.Model):
     code = models.CharField(
         max_length=7,
@@ -104,7 +98,7 @@ class Booking(models.Model):
     # Sección 2
     hotel_name = models.CharField(max_length=255)
     second_image = models.ImageField(upload_to='bookings/', null=True, blank=True)
-    room_type = models.CharField(max_length=20, choices=ROOM_TYPE_CHOICES)
+    room_type = models.CharField(max_length=100)
     location = models.CharField(max_length=255)
     phone = models.CharField(max_length=20, validators=[RegexValidator(regex=r'^\+?\d{7,15}$', message='Teléfono debe ser numérico (7-15 dígitos).')])
 

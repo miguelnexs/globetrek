@@ -28,11 +28,7 @@ const BookingCreate = ({ token, apiBase, role, setView }) => {
   const canCreate = role === 'admin' || role === 'super_admin' || role === 'employee';
 
   const normalizeRoomType = (val) => {
-    const s = (val || '').toString().trim().toLowerCase();
-    if (['single','individual','simple','sencilla','indiv'].includes(s)) return 'single';
-    if (['double','doble','duo','2','two'].includes(s)) return 'double';
-    if (['suite','suíte'].includes(s)) return 'suite';
-    return s;
+    return (val || '').toString().trim();
   };
 
   const handleChange = (e) => {
@@ -73,8 +69,6 @@ const BookingCreate = ({ token, apiBase, role, setView }) => {
     const inDate = new Date(form.check_in_date); const outDate = new Date(form.check_out_date);
     if (inDate.toString() === 'Invalid Date' || outDate.toString() === 'Invalid Date') return 'Fechas inválidas';
     if (outDate < inDate) return 'Check-out debe ser posterior al check-in';
-    const rt = normalizeRoomType(form.room_type);
-    if (!['single','double','suite'].includes(rt)) return 'Tipo de habitación inválido: use individual, doble o suite';
     return null;
   };
 
@@ -117,64 +111,74 @@ const BookingCreate = ({ token, apiBase, role, setView }) => {
       exit={{ opacity: 0, y: -20 }}
       className="min-h-[calc(100vh-120px)]"
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="text-theme-text font-semibold text-lg">Nueva reserva</div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+        <div className="text-theme-text font-bold text-2xl tracking-tight">Nueva reserva</div>
         <div className="flex items-center gap-2">
           <motion.button 
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             type="button" 
             onClick={() => setView('bookings')} 
-            className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 text-theme-text transition-colors"
+            className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-theme-background/50 hover:bg-theme-background/70 text-theme-text transition-colors border border-theme-border font-bold text-sm"
           >
-            Volver
+            Cancelar y volver
           </motion.button>
         </div>
       </div>
+
       <AnimatePresence>
         {msg && (
           <motion.div 
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className={`mb-4 p-3 rounded text-sm ${msg.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}
+            className={`mb-6 p-4 rounded-xl text-sm flex items-center gap-3 ${msg.type === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}
           >
-            {msg.text}
+            {msg.type === 'error' ? (
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            ) : (
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            )}
+            <span className="font-medium">{msg.text}</span>
           </motion.div>
         )}
       </AnimatePresence>
-      <form onSubmit={createBooking} className="space-y-6">
+
+      <form onSubmit={createBooking} className="space-y-6 md:space-y-8">
           <motion.div 
             initial={{ opacity: 0, y: 10 }} 
             animate={{ opacity: 1, y: 0 }} 
             transition={{ delay: 0.1 }}
-            className="bg-theme-surface border border-theme-border rounded-lg p-6 shadow-sm"
+            className="bg-theme-surface border border-theme-border rounded-xl p-5 md:p-6 shadow-sm"
           >
-            <div className="text-theme-textSecondary font-medium text-sm mb-4 border-b border-theme-border pb-2">Datos del huésped</div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Primer nombre</label>
-                <input type="text" name="first_name" value={form.first_name} onChange={handleChange} required className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" placeholder="Primer nombre" />
+            <div className="text-theme-primary font-bold text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
+              Datos del huésped
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Primer nombre</label>
+                <input type="text" name="first_name" value={form.first_name} onChange={handleChange} required className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition text-sm" placeholder="Ej. Juan Pérez" />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Correo electrónico</label>
-                <input type="email" name="email" value={form.email} onChange={handleChange} required className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" placeholder="correo@ejemplo.com" />
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Correo electrónico</label>
+                <input type="email" name="email" value={form.email} onChange={handleChange} required className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition text-sm" placeholder="correo@ejemplo.com" />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Dirección</label>
-                <input type="text" name="address" value={form.address} onChange={handleChange} required className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" placeholder="Calle y número" />
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Dirección</label>
+                <input type="text" name="address" value={form.address} onChange={handleChange} required className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition text-sm" placeholder="Calle, ciudad, país" />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Teléfono</label>
-                <input type="text" name="phone" value={form.phone} onChange={handleChange} required className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" placeholder="+123456789" />
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Teléfono</label>
+                <input type="text" name="phone" value={form.phone} onChange={handleChange} required className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition text-sm" placeholder="+34 600 000 000" />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Check-in</label>
-                <input type="date" name="check_in_date" value={form.check_in_date} onChange={handleChange} required className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Check-in</label>
+                <input type="date" name="check_in_date" value={form.check_in_date} onChange={handleChange} required className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition text-sm" />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Check-out</label>
-                <input type="date" name="check_out_date" value={form.check_out_date} onChange={handleChange} required className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Check-out</label>
+                <input type="date" name="check_out_date" value={form.check_out_date} onChange={handleChange} required className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition text-sm" />
               </div>
             </div>
           </motion.div>
@@ -183,21 +187,24 @@ const BookingCreate = ({ token, apiBase, role, setView }) => {
             initial={{ opacity: 0, y: 10 }} 
             animate={{ opacity: 1, y: 0 }} 
             transition={{ delay: 0.2 }}
-            className="bg-theme-surface border border-theme-border rounded-lg p-6 shadow-sm"
+            className="bg-theme-surface border border-theme-border rounded-xl p-5 md:p-6 shadow-sm"
           >
-            <div className="text-theme-textSecondary font-medium text-sm mb-4 border-b border-theme-border pb-2">Datos del hotel</div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Nombre del hotel</label>
-                <input type="text" name="hotel_name" value={form.hotel_name} onChange={handleChange} required className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" placeholder="Nombre del hotel" />
+            <div className="text-theme-primary font-bold text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
+              Datos del hotel
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Nombre del hotel</label>
+                <input type="text" name="hotel_name" value={form.hotel_name} onChange={handleChange} required className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition text-sm" placeholder="Ej. Grand Hotel Marina" />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Tipo de habitación</label>
-                <input type="text" name="room_type" value={form.room_type} onChange={handleChange} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" placeholder="Ej: individual, doble, suite" />
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Tipo de habitación</label>
+                <input type="text" name="room_type" value={form.room_type} onChange={handleChange} className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition text-sm" placeholder="Ej: Suite Deluxe, Individual..." />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Ubicación</label>
-                <input type="text" name="location" value={form.location} onChange={handleChange} required className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" placeholder="Ciudad, país" />
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Ubicación</label>
+                <input type="text" name="location" value={form.location} onChange={handleChange} required className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition text-sm" placeholder="Ciudad, Zona" />
               </div>
             </div>
           </motion.div>
@@ -206,29 +213,32 @@ const BookingCreate = ({ token, apiBase, role, setView }) => {
             initial={{ opacity: 0, y: 10 }} 
             animate={{ opacity: 1, y: 0 }} 
             transition={{ delay: 0.3 }}
-            className="bg-theme-surface border border-theme-border rounded-lg p-6 shadow-sm"
+            className="bg-theme-surface border border-theme-border rounded-xl p-5 md:p-6 shadow-sm"
           >
-            <div className="text-theme-textSecondary font-medium text-sm mb-4 border-b border-theme-border pb-2">Detalles de la reserva</div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Valor de la habitación</label>
-                <input type="number" name="room_value" value={form.room_value} onChange={handleChange} required min={0} step="0.01" className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" placeholder="0.00" />
+            <div className="text-theme-primary font-bold text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
+              Detalles de la reserva
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Valor p/noche</label>
+                <input type="number" name="room_value" value={form.room_value} onChange={handleChange} required min={0} step="0.01" className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition text-sm" placeholder="0.00" />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Cantidad de habitaciones</label>
-                <input type="number" name="rooms_count" value={form.rooms_count} onChange={handleChange} required min={1} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" placeholder="1" />
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Cant. Habitaciones</label>
+                <input type="number" name="rooms_count" value={form.rooms_count} onChange={handleChange} required min={1} className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition text-sm" placeholder="1" />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Cantidad de huéspedes</label>
-                <input type="number" name="guests_count" value={form.guests_count} onChange={handleChange} required min={1} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" placeholder="1" />
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Cant. Huéspedes</label>
+                <input type="number" name="guests_count" value={form.guests_count} onChange={handleChange} required min={1} className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition text-sm" placeholder="1" />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Moneda</label>
-                <select name="currency_code" value={form.currency_code} onChange={handleChange} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition">
-                  <option value="EUR">EUR (€)</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="COP">COP ($)</option>
-                  <option value="MXN">MXN ($)</option>
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Moneda</label>
+                <select name="currency_code" value={form.currency_code} onChange={handleChange} className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition text-sm cursor-pointer">
+                  <option value="EUR">EUR (€) - Euro</option>
+                  <option value="USD">USD ($) - Dólar</option>
+                  <option value="COP">COP ($) - Peso Col</option>
+                  <option value="MXN">MXN ($) - Peso Mex</option>
                 </select>
               </div>
             </div>
@@ -238,59 +248,68 @@ const BookingCreate = ({ token, apiBase, role, setView }) => {
             initial={{ opacity: 0, y: 10 }} 
             animate={{ opacity: 1, y: 0 }} 
             transition={{ delay: 0.4 }}
-            className="bg-theme-surface border border-theme-border rounded-lg p-6 shadow-sm"
+            className="bg-theme-surface border border-theme-border rounded-xl p-5 md:p-6 shadow-sm"
           >
-            <div className="text-theme-textSecondary font-medium text-sm mb-4 border-b border-theme-border pb-2">Imágenes</div>
+            <div className="text-theme-primary font-bold text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-theme-primary"></div>
+              Imágenes del comprobante
+            </div>
             <input id="first_image_input" type="file" name="first_image" onChange={handleFileChange} accept="image/*" className="hidden" />
             <input id="second_image_input" type="file" name="second_image" onChange={handleFileChange} accept="image/*" className="hidden" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Imagen del huésped</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Foto del huésped / DNI</label>
                 <motion.div
-                  whileHover={{ scale: 1.02, borderColor: 'rgba(var(--color-accent-rgb), 0.5)' }}
+                  whileHover={{ scale: 1.01, borderColor: 'rgba(var(--color-primary-rgb), 0.5)' }}
                   onClick={() => { const el = document.getElementById('first_image_input'); if (el) el.click(); }}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer?.files?.[0]; if (f) handleFileDrop('first_image', f); }}
-                  className="group relative flex items-center justify-center rounded-lg border-2 border-dashed border-theme-border bg-theme-background/30 h-32 cursor-pointer transition-colors"
+                  className="group relative flex items-center justify-center rounded-xl border-2 border-dashed border-theme-border bg-theme-background/20 h-40 cursor-pointer transition-all overflow-hidden"
                 >
                   {!firstPreview && (
-                    <div className="text-theme-textSecondary text-sm flex flex-col items-center gap-2">
-                      <svg className="w-8 h-8 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18M5 7l2-3h10l2 3M5 7v10a2 2 0 002 2h10a2 2 0 002-2V7"/></svg>
-                      <span>Subir imagen huésped</span>
+                    <div className="text-theme-textSecondary text-sm flex flex-col items-center gap-3 p-4 text-center">
+                      <div className="w-12 h-12 rounded-full bg-theme-background/50 flex items-center justify-center text-theme-textMuted group-hover:text-theme-primary transition-colors">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                      </div>
+                      <span className="font-medium">Haz clic o arrastra para subir</span>
+                      <span className="text-[10px] opacity-60">PNG, JPG hasta 5MB</span>
                     </div>
                   )}
                   {firstPreview && (
                     <>
-                      <img src={firstPreview} alt="Vista previa huésped" className="absolute inset-0 w-full h-full object-cover rounded-lg" />
-                      <div className="absolute top-2 right-2 flex items-center gap-2">
-                        <button type="button" onClick={(ev) => { ev.stopPropagation(); const el = document.getElementById('first_image_input'); if (el) el.click(); }} className="px-2 py-1 text-xs rounded bg-gray-900/70 hover:bg-gray-900 text-white backdrop-blur-sm">Cambiar</button>
-                        <button type="button" onClick={(ev) => { ev.stopPropagation(); removeImage('first_image'); }} className="px-2 py-1 text-xs rounded bg-red-600/80 hover:bg-red-700 text-white backdrop-blur-sm">Quitar</button>
+                      <img src={firstPreview} alt="Vista previa huésped" className="absolute inset-0 w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
+                        <button type="button" onClick={(ev) => { ev.stopPropagation(); const el = document.getElementById('first_image_input'); if (el) el.click(); }} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white text-black hover:bg-theme-primary hover:text-white transition-all">Cambiar</button>
+                        <button type="button" onClick={(ev) => { ev.stopPropagation(); removeImage('first_image'); }} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all">Quitar</button>
                       </div>
                     </>
                   )}
                 </motion.div>
               </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-theme-textSecondary text-xs uppercase tracking-wide font-medium">Imagen del hotel</label>
+              <div className="flex flex-col gap-2">
+                <label className="text-theme-textSecondary text-[10px] uppercase tracking-widest font-bold ml-1">Foto del hotel / Logo</label>
                 <motion.div
-                  whileHover={{ scale: 1.02, borderColor: 'rgba(var(--color-accent-rgb), 0.5)' }}
+                  whileHover={{ scale: 1.01, borderColor: 'rgba(var(--color-primary-rgb), 0.5)' }}
                   onClick={() => { const el = document.getElementById('second_image_input'); if (el) el.click(); }}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer?.files?.[0]; if (f) handleFileDrop('second_image', f); }}
-                  className="group relative flex items-center justify-center rounded-lg border-2 border-dashed border-theme-border bg-theme-background/30 h-32 cursor-pointer transition-colors"
+                  className="group relative flex items-center justify-center rounded-xl border-2 border-dashed border-theme-border bg-theme-background/20 h-40 cursor-pointer transition-all overflow-hidden"
                 >
                   {!secondPreview && (
-                    <div className="text-theme-textSecondary text-sm flex flex-col items-center gap-2">
-                      <svg className="w-8 h-8 opacity-50" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18M5 7l2-3h10l2 3M5 7v10a2 2 0 002 2h10a2 2 0 002-2V7"/></svg>
-                      <span>Subir imagen hotel</span>
+                    <div className="text-theme-textSecondary text-sm flex flex-col items-center gap-3 p-4 text-center">
+                      <div className="w-12 h-12 rounded-full bg-theme-background/50 flex items-center justify-center text-theme-textMuted group-hover:text-theme-primary transition-colors">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5"/></svg>
+                      </div>
+                      <span className="font-medium">Haz clic o arrastra para subir</span>
+                      <span className="text-[10px] opacity-60">PNG, JPG hasta 5MB</span>
                     </div>
                   )}
                   {secondPreview && (
                     <>
-                      <img src={secondPreview} alt="Vista previa hotel" className="absolute inset-0 w-full h-full object-cover rounded-lg" />
-                      <div className="absolute top-2 right-2 flex items-center gap-2">
-                        <button type="button" onClick={(ev) => { ev.stopPropagation(); const el = document.getElementById('second_image_input'); if (el) el.click(); }} className="px-2 py-1 text-xs rounded bg-gray-900/70 hover:bg-gray-900 text-white backdrop-blur-sm">Cambiar</button>
-                        <button type="button" onClick={(ev) => { ev.stopPropagation(); removeImage('second_image'); }} className="px-2 py-1 text-xs rounded bg-red-600/80 hover:bg-red-700 text-white backdrop-blur-sm">Quitar</button>
+                      <img src={secondPreview} alt="Vista previa hotel" className="absolute inset-0 w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
+                        <button type="button" onClick={(ev) => { ev.stopPropagation(); const el = document.getElementById('second_image_input'); if (el) el.click(); }} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-white text-black hover:bg-theme-primary hover:text-white transition-all">Cambiar</button>
+                        <button type="button" onClick={(ev) => { ev.stopPropagation(); removeImage('second_image'); }} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all">Quitar</button>
                       </div>
                     </>
                   )}
@@ -299,24 +318,32 @@ const BookingCreate = ({ token, apiBase, role, setView }) => {
             </div>
           </motion.div>
 
-          <div className="flex items-center justify-end gap-3 pt-4">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-6 mb-10">
             <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               type="button" 
               onClick={() => setView('bookings')} 
-              className="px-4 py-2 rounded-lg bg-theme-background/50 hover:bg-theme-background/70 text-theme-text transition-colors"
+              className="px-6 py-3 rounded-xl bg-theme-background/50 hover:bg-theme-background/70 text-theme-text transition-colors border border-theme-border font-bold"
             >
               Cancelar
             </motion.button>
             <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               type="submit" 
               disabled={loading || !canCreate} 
-              className="px-6 py-2 rounded-lg btn-brand disabled:opacity-50 shadow-lg shadow-theme-primary/20"
+              className="px-8 py-3 rounded-xl btn-brand disabled:opacity-50 shadow-xl shadow-theme-primary/30 font-bold flex items-center justify-center gap-2"
             >
-              {loading ? 'Guardando...' : 'Guardar reserva'}
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Guardando...</span>
+                </>
+              ) : 'Crear Reserva'}
             </motion.button>
           </div>
       </form>

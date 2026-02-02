@@ -109,7 +109,7 @@ const Bookings = ({ token, apiBase, role, setView, onEdit }) => {
     const subtotal = roomRatePerNight * nights;
     
     // Generate QR
-    const qrUrlText = `http://localhost:5173/download/${b.code || b.id || ''}`;
+    const qrUrlText = `https://globetrek.cloud/download/${b.code || b.id || ''}`;
     let qrSrc = null;
     try {
       qrSrc = await QRCode.toDataURL(qrUrlText, { width: 140, margin: 1 });
@@ -186,7 +186,7 @@ const Bookings = ({ token, apiBase, role, setView, onEdit }) => {
         
         <div style="margin-top:18px;">Pago realizado con tarjeta de credito ****${String(b.card_last_digits || '244')}</div>
         <div style="margin-top:12px;">Gracias por tu compra</div>
-        <div>Puedes confirmar tu reserva en nuestras pagina oficial http://localhost:5173/</div>
+        <div>Puedes confirmar tu reserva en nuestras pagina oficial https://globetrek.cloud/</div>
       </div>
     `;
     document.body.appendChild(receiptContent);
@@ -242,7 +242,7 @@ const Bookings = ({ token, apiBase, role, setView, onEdit }) => {
     const total = typeof nights === 'number' ? subtotal * nights : subtotal;
 
     // Generate QR
-    const qrUrlText = `http://localhost:5173/download/${b.code || b.id || ''}`;
+    const qrUrlText = `https://globetrek.cloud/download/${b.code || b.id || ''}`;
     let qrSrc = null;
     try {
       qrSrc = await QRCode.toDataURL(qrUrlText, { width: 120, margin: 1 });
@@ -776,14 +776,19 @@ const Bookings = ({ token, apiBase, role, setView, onEdit }) => {
         )}
       </AnimatePresence>
 
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-between md:justify-end gap-4">
+        <h2 className="text-xl font-bold text-theme-text md:hidden">Reservas</h2>
         <motion.button 
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setView('booking_create')} 
-          className="px-4 py-2 rounded btn-brand shadow-lg shadow-theme-primary/20 font-medium"
+          className="px-4 py-2.5 rounded-xl btn-brand shadow-lg shadow-theme-primary/20 font-bold text-sm flex items-center gap-2"
         >
-          Nueva reserva
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          <span className="hidden sm:inline">Nueva reserva</span>
+          <span className="sm:hidden">Nueva</span>
         </motion.button>
       </div>
 
@@ -791,39 +796,43 @@ const Bookings = ({ token, apiBase, role, setView, onEdit }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.1 }}
-        className="bg-theme-surface border border-theme-border rounded-lg p-6 shadow-sm"
+        className="bg-theme-surface border border-theme-border rounded-xl p-4 md:p-6 shadow-sm overflow-hidden"
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-          <div className="text-theme-text font-bold text-lg">Reservas</div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative">
+          <div className="text-theme-text font-bold text-lg hidden md:block">Listado de Reservas</div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+            <div className="relative flex-1 sm:flex-none">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-textSecondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-              <input value={q} onChange={(e) => setQ(e.target.value)} className="pl-9 pr-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border text-sm focus:outline-none focus:ring-2 focus:ring-theme-accent/40 w-full md:w-auto" placeholder="Buscar..." />
+              <input value={q} onChange={(e) => setQ(e.target.value)} className="pl-9 pr-3 py-2.5 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border text-sm focus:outline-none focus:ring-2 focus:ring-theme-accent/40 w-full md:w-64" placeholder="Buscar por nombre o código..." />
             </div>
-            <select value={ordering} onChange={(e) => setOrdering(e.target.value)} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border text-sm focus:outline-none focus:ring-2 focus:ring-theme-accent/40">
-              <option value="-created_at">Más recientes</option>
-              <option value="first_name">Nombre (A-Z)</option>
-              <option value="hotel_name">Hotel (A-Z)</option>
-              <option value="check_in_date">Check-in</option>
-              <option value="check_out_date">Check-out</option>
-              <option value="room_value">Valor</option>
-            </select>
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => { setPage(1); loadBookings(); }} 
-              className="px-3 py-2 text-sm rounded-lg bg-theme-background/50 text-theme-text border border-theme-border hover:bg-theme-background/70"
-            >
-              Aplicar
-            </motion.button>
+            <div className="flex items-center gap-2">
+              <select value={ordering} onChange={(e) => setOrdering(e.target.value)} className="flex-1 sm:flex-none px-3 py-2.5 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border text-sm focus:outline-none focus:ring-2 focus:ring-theme-accent/40">
+                <option value="-created_at">Más recientes</option>
+                <option value="first_name">Nombre (A-Z)</option>
+                <option value="hotel_name">Hotel (A-Z)</option>
+                <option value="check_in_date">Check-in</option>
+                <option value="check_out_date">Check-out</option>
+                <option value="room_value">Valor</option>
+              </select>
+              <motion.button 
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => { setPage(1); loadBookings(); }} 
+                className="px-4 py-2.5 text-sm font-bold rounded-xl bg-theme-background/50 text-theme-text border border-theme-border hover:bg-theme-background/70 transition-colors"
+              >
+                Filtrar
+              </motion.button>
+            </div>
           </div>
         </div>
-        <div className="overflow-auto rounded-lg border border-theme-border">
+
+        {/* Vista Desktop: Tabla */}
+        <div className="hidden md:block overflow-x-auto rounded-xl border border-theme-border">
           <table className="min-w-full text-sm text-theme-text">
             <thead>
-              <tr className="text-left bg-theme-background/50 text-theme-textSecondary font-medium">
+              <tr className="text-left bg-theme-background/50 text-theme-textSecondary font-bold uppercase tracking-wider text-[10px]">
                 {['Nombre','Código','Correo','Acciones'].map((h) => (
-                  <th key={h} className="px-4 py-3 border-b border-theme-border">{h}</th>
+                  <th key={h} className="px-4 py-4 border-b border-theme-border">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -838,35 +847,103 @@ const Bookings = ({ token, apiBase, role, setView, onEdit }) => {
                     transition={{ delay: i * 0.05 }}
                     className="hover:bg-theme-background/20 transition-colors"
                   >
-                    <td className="px-4 py-3 font-medium">{b.first_name}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{b.code || '-'}</td>
-                    <td className="px-4 py-3 text-theme-textSecondary">{b.email}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <motion.button whileHover={{ scale: 1.1 }} onClick={() => onEdit && onEdit(b)} className="px-2 py-1 text-xs rounded btn-brand">Editar</motion.button>
-                        <motion.button whileHover={{ scale: 1.1 }} onClick={() => downloadReceipt(b)} className="px-2 py-1 text-xs rounded bg-theme-accent text-white">Recibo</motion.button>
-                        <motion.button whileHover={{ scale: 1.1 }} onClick={() => downloadBookingPdf(b)} className="px-2 py-1 text-xs rounded bg-theme-primary text-white">Reserva</motion.button>
-                        <motion.button whileHover={{ scale: 1.1 }} onClick={() => setConfirmSendEmail(b)} className="px-2 py-1 text-xs rounded bg-purple-600 hover:bg-purple-700 text-white">Email</motion.button>
+                    <td className="px-4 py-4 font-semibold">{b.first_name}</td>
+                    <td className="px-4 py-4 font-mono text-xs text-theme-textSecondary">{b.code || '-'}</td>
+                    <td className="px-4 py-4 text-theme-textSecondary">{b.email}</td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-1.5">
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => onEdit && onEdit(b)} className="p-2 rounded-lg hover:bg-theme-primary/10 text-theme-primary transition-colors" title="Editar">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => downloadReceipt(b)} className="p-2 rounded-lg hover:bg-theme-accent/10 text-theme-accent transition-colors" title="Recibo">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => downloadBookingPdf(b)} className="p-2 rounded-lg hover:bg-theme-primary/10 text-theme-primary transition-colors" title="Reserva">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        </motion.button>
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setConfirmSendEmail(b)} className="p-2 rounded-lg hover:bg-purple-600/10 text-purple-500 transition-colors" title="Enviar Email">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                        </motion.button>
                         {canDelete && (
-                          <motion.button whileHover={{ scale: 1.1 }} onClick={() => setConfirmDelete(b)} className="px-2 py-1 text-xs rounded bg-red-500/10 text-red-600 border border-red-500/20 hover:bg-red-500/20">Eliminar</motion.button>
+                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => setConfirmDelete(b)} className="p-2 rounded-lg hover:bg-red-600/10 text-red-500 transition-colors" title="Eliminar">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                          </motion.button>
                         )}
                       </div>
                     </td>
                   </motion.tr>
                 ))}
               </AnimatePresence>
-              {list.length === 0 && (
-                <tr><td className="px-4 py-8 text-center text-theme-textSecondary" colSpan={4}>No hay reservas registradas.</td></tr>
-              )}
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between mt-4 text-sm">
-          <div className="text-theme-textSecondary">Total: {total}</div>
-          <div className="flex items-center gap-2">
-            <button disabled={page <= 1} onClick={() => { setPage(Math.max(1, page - 1)); loadBookings(); }} className="px-3 py-1.5 rounded-lg border border-theme-border hover:bg-theme-background/30 disabled:opacity-50 transition-colors">Anterior</button>
-            <span className="text-theme-text font-medium px-2">{page} / {totalPages}</span>
-            <button disabled={page >= totalPages} onClick={() => { setPage(Math.min(totalPages, page + 1)); loadBookings(); }} className="px-3 py-1.5 rounded-lg border border-theme-border hover:bg-theme-background/30 disabled:opacity-50 transition-colors">Siguiente</button>
+
+        {/* Vista Mobile: Cards */}
+        <div className="md:hidden space-y-4">
+          <AnimatePresence>
+            {list.map((b, i) => (
+              <motion.div 
+                key={b.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ delay: i * 0.05 }}
+                className="bg-theme-background/20 border border-theme-border rounded-xl p-4 space-y-4"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-bold text-theme-text">{b.first_name}</div>
+                    <div className="text-xs font-mono text-theme-textSecondary mt-1">{b.code || '-'}</div>
+                  </div>
+                  <div className="px-2 py-1 rounded bg-theme-primary/10 text-theme-primary text-[10px] font-bold uppercase tracking-wider">
+                    {roomTypeLabel(b.room_type)}
+                  </div>
+                </div>
+                
+                <div className="text-sm text-theme-textSecondary flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                  {b.email}
+                </div>
+
+                <div className="pt-3 border-t border-theme-border grid grid-cols-3 gap-2">
+                   <button onClick={() => onEdit && onEdit(b)} className="flex flex-col items-center gap-1 p-2 rounded-lg bg-theme-surface border border-theme-border text-theme-text">
+                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                     <span className="text-[10px] font-bold">Editar</span>
+                   </button>
+                   <button onClick={() => downloadReceipt(b)} className="flex flex-col items-center gap-1 p-2 rounded-lg bg-theme-surface border border-theme-border text-theme-text">
+                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                     <span className="text-[10px] font-bold">Recibo</span>
+                   </button>
+                   <button onClick={() => downloadBookingPdf(b)} className="flex flex-col items-center gap-1 p-2 rounded-lg bg-theme-surface border border-theme-border text-theme-text">
+                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                     <span className="text-[10px] font-bold">Reserva</span>
+                   </button>
+                   <button onClick={() => setConfirmSendEmail(b)} className="flex flex-col items-center gap-1 p-2 rounded-lg bg-purple-600/10 border border-purple-500/20 text-purple-500">
+                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                     <span className="text-[10px] font-bold">Email</span>
+                   </button>
+                   {canDelete && (
+                     <button onClick={() => setConfirmDelete(b)} className="flex flex-col items-center gap-1 p-2 rounded-lg bg-red-600/10 border border-red-500/20 text-red-500">
+                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                       <span className="text-[10px] font-bold">Borrar</span>
+                     </button>
+                   )}
+                </div>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {list.length === 0 && (
+          <div className="py-12 text-center text-theme-textSecondary">No se encontraron reservas.</div>
+        )}
+
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4 text-sm">
+          <div className="text-theme-textSecondary font-medium order-2 sm:order-1">Mostrando {list.length} de {total} reservas</div>
+          <div className="flex items-center gap-2 order-1 sm:order-2 w-full sm:w-auto justify-center">
+            <button disabled={page <= 1} onClick={() => { setPage(Math.max(1, page - 1)); loadBookings(); }} className="flex-1 sm:flex-none px-4 py-2 rounded-xl border border-theme-border hover:bg-theme-background/30 disabled:opacity-50 transition-colors font-bold">Anterior</button>
+            <span className="text-theme-text font-bold px-4 py-2 bg-theme-background/30 rounded-xl border border-theme-border">{page} / {totalPages}</span>
+            <button disabled={page >= totalPages} onClick={() => { setPage(Math.min(totalPages, page + 1)); loadBookings(); }} className="flex-1 sm:flex-none px-4 py-2 rounded-xl border border-theme-border hover:bg-theme-background/30 disabled:opacity-50 transition-colors font-bold">Siguiente</button>
           </div>
         </div>
       </motion.div>

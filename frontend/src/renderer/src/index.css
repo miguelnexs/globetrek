@@ -525,6 +525,97 @@
   }
 }
 
+/* ===== RESPONSIVE DESIGN & MOBILE OPTIMIZATIONS ===== */
+
+/* Base responsive typography */
+:root {
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    font-size: 14px;
+  }
+}
+
+/* Standard Breakpoints */
+/* Mobile Small (320px) */
+@media (max-width: 320px) {
+  .px-4 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  .text-2xl {
+    font-size: 1.25rem;
+  }
+}
+
+/* Tablet / Mobile Large (768px) */
+@media (max-width: 768px) {
+  .grid-cols-2, .grid-cols-3, .grid-cols-4 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  
+  .mobile-hide {
+    display: none;
+  }
+  
+  .mobile-full {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Mobile spacing optimizations */
+  .p-6 {
+    padding: 1rem;
+  }
+  .p-8 {
+    padding: 1.25rem;
+  }
+  .gap-6 {
+    gap: 1rem;
+  }
+  
+  /* Mobile font sizes */
+  h1 { font-size: 1.75rem !important; }
+  h2 { font-size: 1.5rem !important; }
+  h3 { font-size: 1.25rem !important; }
+}
+
+/* Desktop Small (1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .grid-cols-3, .grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Global Mobile Fixes */
+.mobile-touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Image responsiveness */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Backdrop blur support check */
+@supports not (backdrop-filter: blur(1px)) {
+  .backdrop-blur-md, .backdrop-blur-sm, .backdrop-blur-lg {
+    background-color: rgba(var(--color-surface-rgb), 0.95) !important;
+  }
+}
+
+/* Custom scrollbar for mobile */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+}
+
 /* Variables CSS para temas personalizados */
 :root {
   /* Tema por defecto (oscuro) */

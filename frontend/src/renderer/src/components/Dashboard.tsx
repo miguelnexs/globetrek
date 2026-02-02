@@ -120,57 +120,111 @@ const Topbar = ({ view, setView, role, onSignOut, mobileOpen, setMobileOpen }) =
   const handleMaximize = () => window.electron.ipcRenderer.send('window-maximize');
   const handleClose = () => window.electron.ipcRenderer.send('window-close');
 
+  const menuVariants = {
+    closed: {
+      opacity: 0,
+      x: "100%",
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 30
+      }
+    },
+    open: {
+      opacity: 1,
+      x: 0,
+      transition: {
+        type: "spring",
+        stiffness: 300,
+        damping: 30
+      }
+    }
+  };
+
+  const navItemVariants = {
+    closed: { opacity: 0, x: 20 },
+    open: (i) => ({
+      opacity: 1,
+      x: 0,
+      transition: {
+        delay: i * 0.1
+      }
+    })
+  };
+
   return (
     <>
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-[60] md:hidden backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       <header className="w-full sticky top-0 z-50 bg-theme-surface/80 backdrop-blur-md border-b border-theme-border mobile-touch safe-area-top title-bar-drag">
         <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3 h-full no-drag">
             <button
-              className="md:hidden p-2 rounded text-theme-text hover:bg-theme-background/30"
-              onClick={() => setMobileOpen(true)}
+              className="md:hidden p-2 rounded text-theme-text hover:bg-theme-background/30 z-[70]"
+              onClick={() => setMobileOpen(!mobileOpen)}
             >
-              <Icon name="menu" className="w-6 h-6" />
+              <div className="w-6 h-5 relative flex flex-col justify-between items-center">
+                <motion.span
+                  animate={mobileOpen ? { rotate: 45, y: 9 } : { rotate: 0, y: 0 }}
+                  className="w-full h-0.5 bg-current rounded-full"
+                />
+                <motion.span
+                  animate={mobileOpen ? { opacity: 0, x: -20 } : { opacity: 1, x: 0 }}
+                  className="w-full h-0.5 bg-current rounded-full"
+                />
+                <motion.span
+                  animate={mobileOpen ? { rotate: -45, y: -9 } : { rotate: 0, y: 0 }}
+                  className="w-full h-0.5 bg-current rounded-full"
+                />
+              </div>
             </button>
-            <img src={logoBlanco} alt="GlobeTrek" className="h-12 w-auto object-contain" />
+            <img src={logoBlanco} alt="GlobeTrek" className="h-10 md:h-12 w-auto object-contain" />
           </div>
           
           <div className="flex items-center gap-4 h-full no-drag">
             <nav className="hidden md:flex items-center gap-2">
               <button
                 onClick={() => setView('dashboard')}
-                className={`px-3 py-2 rounded text-sm transition ${view === 'dashboard' ? 'bg-theme-background/40 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
+                className={`px-3 py-2 rounded text-sm font-medium transition ${view === 'dashboard' ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
               >
                 Inicio
               </button>
               <button
                 onClick={() => setView('bookings')}
                 disabled={!(role === 'admin' || role === 'super_admin' || role === 'employee')}
-                className={`px-3 py-2 rounded text-sm transition ${view === 'bookings' ? 'bg-theme-background/40 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
+                className={`px-3 py-2 rounded text-sm font-medium transition ${view === 'bookings' ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
               >
                 Reservas
               </button>
               <button
                 onClick={() => setView('users')}
                 disabled={role !== 'admin' && role !== 'super_admin'}
-                className={`px-3 py-2 rounded text-sm transition ${view === 'users' ? 'bg-theme-background/40 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
+                className={`px-3 py-2 rounded text-sm font-medium transition ${view === 'users' ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
               >
                 Usuarios
               </button>
               <button
                 onClick={onSignOut}
-                className="ml-3 px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-sm"
+                className="ml-3 px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-all hover:scale-105 active:scale-95"
               >
                 Cerrar sesión
               </button>
             </nav>
             
-            <div className="md:hidden text-xs text-theme-textSecondary mr-2">Rol: <span className="font-medium">{role}</span></div>
+            <div className="hidden sm:flex flex-col items-end mr-2">
+              <div className="text-[10px] text-theme-textMuted uppercase tracking-wider font-bold">Sesión activa</div>
+              <div className="text-xs text-theme-textSecondary font-medium">{role}</div>
+            </div>
 
             {/* Window Controls */}
             <div className="flex items-center h-8 ml-2 border-l border-theme-border pl-2">
@@ -186,39 +240,66 @@ const Topbar = ({ view, setView, role, onSignOut, mobileOpen, setMobileOpen }) =
             </div>
           </div>
         </div>
-        <div className={`md:hidden ${mobileOpen ? 'translate-y-0' : '-translate-y-full'} transition-transform duration-300`}>
-          <div className="bg-theme-surface border-t border-theme-border no-drag">
-            <div className="px-4 py-2 space-y-1">
-              <button
-                onClick={() => { setView('dashboard'); setMobileOpen(false); }}
-                className={`w-full text-left px-3 py-2 rounded ${view === 'dashboard' ? 'bg-theme-background/30 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
-              >
-                Inicio
-              </button>
-              <button
-                onClick={() => { setView('bookings'); setMobileOpen(false); }}
-                disabled={!(role === 'admin' || role === 'super_admin' || role === 'employee')}
-                className={`w-full text-left px-3 py-2 rounded ${view === 'bookings' ? 'bg-theme-background/30 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
-              >
-                Reservas
-              </button>
-              <button
-                onClick={() => { setView('users'); setMobileOpen(false); }}
-                disabled={role !== 'admin' && role !== 'super_admin'}
-                className={`w-full text-left px-3 py-2 rounded ${view === 'users' ? 'bg-theme-background/30 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
-              >
-                Usuarios
-              </button>
-              <button
-                onClick={() => { onSignOut(); setMobileOpen(false); }}
-                className="w-full text-left px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white"
-              >
-                Cerrar sesión
-              </button>
-            </div>
-          </div>
-        </div>
       </header>
+
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial="closed"
+            animate="open"
+            exit="closed"
+            variants={menuVariants}
+            className="fixed top-0 right-0 bottom-0 w-[280px] bg-theme-surface z-[100] md:hidden border-l border-theme-border shadow-2xl flex flex-col"
+          >
+            <div className="p-6 flex flex-col h-full">
+              <div className="flex items-center justify-between mb-8">
+                <div className="text-theme-text font-bold text-lg">Menú</div>
+                <button onClick={() => setMobileOpen(false)} className="p-2 text-theme-textSecondary">
+                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                   </svg>
+                </button>
+              </div>
+
+              <div className="space-y-2 flex-1">
+                {[
+                  { id: 'dashboard', label: 'Inicio', icon: 'dashboard', access: true },
+                  { id: 'bookings', label: 'Reservas', icon: 'bookings', access: role === 'admin' || role === 'super_admin' || role === 'employee' },
+                  { id: 'users', label: 'Usuarios', icon: 'users', access: role === 'admin' || role === 'super_admin' }
+                ].map((item, i) => (
+                  <motion.button
+                    key={item.id}
+                    custom={i}
+                    variants={navItemVariants}
+                    disabled={!item.access}
+                    onClick={() => { setView(item.id); setMobileOpen(false); }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${!item.access ? 'opacity-30 cursor-not-allowed' : view === item.id ? 'bg-theme-primary text-white shadow-lg shadow-theme-primary/20' : 'text-theme-textSecondary hover:bg-theme-background/50 hover:text-theme-text'}`}
+                  >
+                    <Icon name={item.icon} className="w-5 h-5" />
+                    <span className="font-medium">{item.label}</span>
+                  </motion.button>
+                ))}
+              </div>
+
+              <div className="mt-auto pt-6 border-t border-theme-border">
+                <div className="mb-4 px-4">
+                  <div className="text-[10px] text-theme-textMuted uppercase tracking-wider font-bold mb-1">Usuario</div>
+                  <div className="text-sm text-theme-text font-medium">{role}</div>
+                </div>
+                <motion.button
+                  variants={navItemVariants}
+                  custom={4}
+                  onClick={() => { onSignOut(); setMobileOpen(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                >
+                  <Icon name="logout" className="w-5 h-5" />
+                  <span className="font-semibold">Cerrar sesión</span>
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 };
@@ -313,28 +394,28 @@ const RichKPI = ({ icon, label, value, delta, positive, series }) => (
   <motion.div 
     variants={itemVariants}
     whileHover={{ y: -5, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)" }}
-    className="bg-theme-surface border border-theme-border rounded-lg p-4 flex flex-col gap-2 relative overflow-hidden group"
+    className="bg-theme-surface border border-theme-border rounded-xl p-4 flex flex-col gap-2 relative overflow-hidden group shadow-sm"
   >
-    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform scale-150 origin-top-right">
-      <Icon name={icon} className="w-16 h-16 text-theme-accent" />
+    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform scale-150 origin-top-right pointer-events-none">
+      <Icon name={icon} className="w-12 h-12 md:w-16 md:h-16 text-theme-accent" />
     </div>
     
     <div className="flex items-center justify-between relative z-10">
       <div className="flex items-center gap-2">
-        <div className="w-8 h-8 rounded-full bg-theme-background/40 text-theme-text flex items-center justify-center shadow-sm">
-          <Icon name={icon} className="w-5 h-5" />
+        <div className="w-8 h-8 rounded-lg bg-theme-background/40 text-theme-text flex items-center justify-center shadow-sm">
+          <Icon name={icon} className="w-4 h-4 md:w-5 md:h-5" />
         </div>
-        <div className="text-xs text-theme-textSecondary font-medium">{label}</div>
+        <div className="text-[10px] md:text-xs text-theme-textSecondary font-bold uppercase tracking-tight">{label}</div>
       </div>
       {typeof delta !== 'undefined' && (
-        <div className={`text-xs font-bold px-2 py-0.5 rounded-full ${positive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+        <div className={`text-[10px] md:text-xs font-bold px-2 py-0.5 rounded-full ${positive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
           {positive ? '▲' : '▼'} {delta}%
         </div>
       )}
     </div>
-    <div className="text-2xl font-bold text-theme-text relative z-10 tracking-tight">{value}</div>
+    <div className="text-xl md:text-2xl font-bold text-theme-text relative z-10 tracking-tight">{value}</div>
     {Array.isArray(series) && series.length > 1 && (
-      <div className="relative z-10 mt-2">
+      <div className="relative z-10 mt-1 md:mt-2">
         <Sparkline data={series} />
       </div>
     )}
@@ -547,12 +628,7 @@ const UsersManager = ({ token, apiBase, role }) => {
     : [];
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="space-y-4"
-    >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
       <AnimatePresence>
         {msg && !msg.text.includes('Solo administradores pueden gestionar usuarios') && (
           <motion.div 
@@ -568,29 +644,36 @@ const UsersManager = ({ token, apiBase, role }) => {
 
       <motion.div 
         variants={itemVariants}
-        className="bg-theme-surface border border-theme-border rounded-lg p-6 shadow-sm"
+        className="bg-theme-surface border border-theme-border rounded-xl p-4 md:p-6 shadow-sm overflow-hidden"
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-theme-text font-semibold text-lg">Crear nuevo empleado</div>
-            <div className="text-theme-textSecondary text-sm mt-1">Añade un usuario con datos básicos para que pueda acceder al sistema</div>
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-theme-primary/10 text-theme-primary">
+              <Icon name="users" className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-theme-text font-bold text-lg">Gestión de Empleados</div>
+              <div className="text-theme-textSecondary text-xs">Administra los accesos del equipo</div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+            <div className="relative flex-1 sm:flex-none">
+              <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-theme-textSecondary" />
+              <input 
+                value={query} 
+                onChange={(e) => setQuery(e.target.value)} 
+                className="pl-9 pr-3 py-2.5 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border text-sm focus:outline-none focus:ring-2 focus:ring-theme-accent/40 w-full md:w-64" 
+                placeholder="Buscar por nombre..." 
+              />
+            </div>
             <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setCreateOpen(true)} 
-              className="px-4 py-2 rounded btn-brand font-medium shadow-lg shadow-theme-primary/20"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => { setForm({ username: '', password: '', first_name: '', last_name: '', email: '', department: '', position: '' }); setCreateOpen(true); }} 
+              className="px-4 py-2.5 rounded-xl btn-brand shadow-lg shadow-theme-primary/20 font-bold text-sm flex items-center justify-center gap-2"
             >
-              Nuevo empleado
-            </motion.button>
-            <motion.button 
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={loadEmployees} 
-              className="px-3 py-2 rounded text-xs bg-theme-background/30 text-theme-text hover:bg-theme-background/40 border border-theme-border"
-            >
-              Recargar
+              <Icon name="plus" className="w-4 h-4" />
+              <span>Nuevo Empleado</span>
             </motion.button>
           </div>
         </div>
@@ -598,22 +681,16 @@ const UsersManager = ({ token, apiBase, role }) => {
 
       <motion.div 
         variants={itemVariants}
-        className="bg-theme-surface border border-theme-border rounded-lg p-6 shadow-sm"
+        className="bg-theme-surface border border-theme-border rounded-xl p-4 md:p-6 shadow-sm overflow-hidden"
       >
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <div className="text-theme-text font-semibold text-lg">Empleados</div>
-            <div className="text-theme-textSecondary text-sm mt-1">Gestiona y edita usuarios existentes</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Icon name="users" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-theme-textSecondary w-4 h-4" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar por nombre, usuario..."
-                className="pl-9 pr-4 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 w-64 transition-all"
-              />
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-theme-primary/10 text-theme-primary">
+              <Icon name="users" className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-theme-text font-bold text-lg">Empleados del Sistema</div>
+              <div className="text-theme-textSecondary text-xs">Gestiona y edita usuarios existentes</div>
             </div>
           </div>
         </div>
@@ -627,47 +704,43 @@ const UsersManager = ({ token, apiBase, role }) => {
                 exit={{ opacity: 0, x: 20 }}
                 whileHover={{ scale: 1.01, backgroundColor: "rgba(var(--color-surface-rgb), 0.8)" }}
                 key={emp.id} 
-                className="flex items-center justify-between bg-theme-background/20 border border-theme-border rounded-lg p-4 text-sm text-theme-text hover:shadow-md transition-all duration-200"
+                className="group flex flex-col sm:flex-row sm:items-center justify-between bg-theme-background/20 border border-theme-border rounded-xl p-4 text-sm text-theme-text hover:shadow-md transition-all duration-200 gap-4"
               >
                 <span className="flex-1 flex items-center gap-4">
-                  <div className="relative">
-                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-theme-primary to-theme-accent text-white font-bold shadow-lg shadow-theme-primary/20">
+                  <div className="relative shrink-0">
+                    <span className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-theme-primary to-theme-accent text-white font-black text-lg shadow-lg shadow-theme-primary/20">
                       {String(emp.username || '?').slice(0,1).toUpperCase()}
                     </span>
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-theme-surface rounded-full"></div>
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-theme-surface rounded-full shadow-sm"></div>
                   </div>
-                  <span className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-base">{emp.username}</span>
+                  <span className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-base truncate">{emp.username}</span>
                       {(emp.department || emp.position) && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-theme-background/40 text-theme-textSecondary border border-theme-border/50">
+                        <span className="text-[10px] px-2 py-0.5 rounded-lg bg-theme-primary/10 text-theme-primary border border-theme-primary/20 font-bold uppercase tracking-wider">
                           {emp.department || 'General'}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-theme-textSecondary">{emp.first_name} {emp.last_name}</span>
-                      <span className="text-theme-textMuted text-xs">•</span>
-                      <span className="text-theme-textMuted text-xs">{emp.email}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-1">
+                      <span className="text-theme-textSecondary font-medium truncate">{emp.first_name} {emp.last_name}</span>
+                      <span className="hidden sm:inline text-theme-textMuted text-xs">•</span>
+                      <span className="text-theme-textMuted text-xs truncate">{emp.email}</span>
                     </div>
                   </span>
                 </span>
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => startEdit(emp)} className="px-3 py-1.5 text-xs rounded-md btn-brand">Editar</motion.button>
-                  <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => removeEmployee(emp.id)} className="px-3 py-1.5 text-xs rounded-md bg-red-500/10 text-red-600 border border-red-500/20 hover:bg-red-500/20">Eliminar</motion.button>
+                <div className="flex items-center gap-2 sm:opacity-0 group-hover:opacity-100 transition-opacity justify-end border-t sm:border-t-0 border-theme-border/50 pt-3 sm:pt-0">
+                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => startEdit(emp)} className="flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg bg-theme-background/50 hover:bg-theme-background/80 border border-theme-border transition-all">Editar</motion.button>
+                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => removeEmployee(emp.id)} className="flex-1 sm:flex-none px-4 py-2 text-xs font-bold rounded-lg bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">Eliminar</motion.button>
                 </div>
               </motion.li>
             ))}
           </AnimatePresence>
           {Array.isArray(employees) && employees.length === 0 && (
-            <motion.li initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-theme-textSecondary text-sm flex items-center gap-2 p-8 justify-center flex-col border-2 border-dashed border-theme-border rounded-lg">
-              <Icon name="users" className="w-8 h-8 opacity-50 mb-2" />
-              <span>No hay empleados registrados.</span>
-            </motion.li>
-          )}
-          {Array.isArray(employees) && employees.length > 0 && filteredEmployees.length === 0 && (
-            <motion.li initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-theme-textSecondary text-sm p-8 text-center">
-              No hay resultados para “{query}”.
+            <motion.li initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-theme-textSecondary text-sm flex items-center gap-2 p-12 justify-center flex-col border-2 border-dashed border-theme-border rounded-xl">
+              <Icon name="users" className="w-12 h-12 opacity-20 mb-2" />
+              <span className="font-bold">No hay empleados registrados.</span>
+              <span className="text-xs opacity-60">Comienza agregando uno nuevo.</span>
             </motion.li>
           )}
         </motion.ul>
@@ -678,27 +751,27 @@ const UsersManager = ({ token, apiBase, role }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]"
           >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-theme-surface border border-theme-border rounded-xl p-6 w-full max-w-2xl shadow-2xl"
+              className="bg-theme-surface border border-theme-border rounded-2xl p-6 w-full max-w-2xl shadow-2xl overflow-y-auto max-h-[90vh]"
             >
               <div className="flex items-center justify-between mb-6 border-b border-theme-border pb-4">
                 <div>
-                  <div className="text-theme-text font-bold text-xl">Nuevo empleado</div>
-                  <div className="text-theme-textSecondary text-sm mt-1">Completa los datos para crear el usuario</div>
+                  <div className="text-theme-text font-bold text-xl tracking-tight">Nuevo empleado</div>
+                  <div className="text-theme-textSecondary text-xs mt-1">Completa los datos para crear el usuario</div>
                 </div>
-                <button onClick={() => setCreateOpen(false)} className="p-2 rounded-full hover:bg-theme-background/50 transition-colors">
+                <button onClick={() => setCreateOpen(false)} className="p-2 rounded-xl hover:bg-theme-background/50 transition-colors">
                   <Icon name="cancel" className="w-6 h-6 text-theme-textSecondary" />
                 </button>
               </div>
-              <form onSubmit={createEmployee} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <form onSubmit={createEmployee} className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {['username','password','first_name','last_name','email','department','position'].map((field) => (
-                  <div key={field} className={`flex flex-col gap-1.5 ${field === 'email' ? 'md:col-span-2' : ''}`}>
-                    <label htmlFor={`create_${field}`} className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide ml-1">{fieldLabels[field] || field}</label>
+                  <div key={field} className={`flex flex-col gap-2 ${field === 'email' ? 'md:col-span-2' : ''}`}>
+                    <label htmlFor={`create_${field}`} className="text-[10px] font-bold text-theme-textSecondary uppercase tracking-widest ml-1">{fieldLabels[field] || field}</label>
                     <input
                       id={`create_${field}`}
                       type={field === 'password' ? 'password' : field === 'email' ? 'email' : 'text'}
@@ -706,14 +779,14 @@ const UsersManager = ({ token, apiBase, role }) => {
                       value={form[field]}
                       onChange={handleChange}
                       required={field === 'username' || field === 'password'}
-                      className="px-4 py-2.5 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/50 focus:border-theme-accent/50 transition-all placeholder-theme-textMuted/50"
+                      className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/50 focus:border-theme-accent/50 transition-all placeholder-theme-textMuted/50 text-sm"
                       placeholder={`Ingresa ${fieldLabels[field] || field}`}
                     />
                   </div>
                 ))}
-                <div className="md:col-span-2 flex items-center justify-end gap-3 mt-4 pt-4 border-t border-theme-border">
-                  <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 rounded-lg bg-theme-background/30 text-theme-text hover:bg-theme-background/50 transition-colors">Cancelar</button>
-                  <button type="submit" disabled={loading} className="px-6 py-2 rounded-lg btn-brand disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-theme-primary/20">
+                <div className="md:col-span-2 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 mt-6 pt-6 border-t border-theme-border">
+                  <button type="button" onClick={() => setCreateOpen(false)} className="px-6 py-3 rounded-xl bg-theme-background/30 text-theme-text hover:bg-theme-background/50 border border-theme-border transition-colors font-bold text-sm">Cancelar</button>
+                  <button type="submit" disabled={loading} className="px-8 py-3 rounded-xl btn-brand disabled:opacity-50 disabled:cursor-not-allowed shadow-xl shadow-theme-primary/30 font-bold text-sm">
                     {loading ? 'Creando...' : 'Crear empleado'}
                   </button>
                 </div>
@@ -728,34 +801,41 @@ const UsersManager = ({ token, apiBase, role }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[110]"
           >
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-theme-surface border border-theme-border rounded-xl p-6 w-full max-w-lg shadow-2xl"
+              className="bg-theme-surface border border-theme-border rounded-2xl p-6 w-full max-w-lg shadow-2xl overflow-y-auto max-h-[90vh]"
             >
-              <div className="text-theme-text font-bold text-xl mb-1">Editar empleado</div>
-              <div className="text-theme-textSecondary text-sm mb-6 pb-4 border-b border-theme-border">Editando a <span className="font-semibold text-theme-primary">{editing.username}</span></div>
-              <form onSubmit={submitEdit} className="grid grid-cols-1 gap-4">
+              <div className="flex items-center justify-between mb-6 border-b border-theme-border pb-4">
+                <div>
+                  <div className="text-theme-text font-bold text-xl tracking-tight">Editar empleado</div>
+                  <div className="text-theme-textSecondary text-xs mt-1">Editando a <span className="font-bold text-theme-primary">{editing.username}</span></div>
+                </div>
+                <button onClick={() => setEditing(null)} className="p-2 rounded-xl hover:bg-theme-background/50 transition-colors">
+                  <Icon name="cancel" className="w-6 h-6 text-theme-textSecondary" />
+                </button>
+              </div>
+              <form onSubmit={submitEdit} className="grid grid-cols-1 gap-5">
                 {['first_name','last_name','email','department','position','password'].map((field) => (
-                  <div key={field} className="flex flex-col gap-1.5">
-                    <label htmlFor={`edit_${field}`} className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide ml-1">{fieldLabels[field] || field}</label>
+                  <div key={field} className="flex flex-col gap-2">
+                    <label htmlFor={`edit_${field}`} className="text-[10px] font-bold text-theme-textSecondary uppercase tracking-widest ml-1">{fieldLabels[field] || field}</label>
                     <input
                       id={`edit_${field}`}
                       type={field === 'password' ? 'password' : field === 'email' ? 'email' : 'text'}
                       name={field}
                       value={editForm[field]}
                       onChange={handleEditChange}
-                      className="px-4 py-2.5 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/50 focus:border-theme-accent/50 transition-all"
+                      className="px-4 py-3 rounded-xl bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/50 focus:border-theme-accent/50 transition-all text-sm"
                       placeholder={field === 'password' ? 'Nueva contraseña (opcional)' : fieldLabels[field] || field}
                     />
                   </div>
                 ))}
-                <div className="flex items-center justify-end gap-3 mt-4 pt-4 border-t border-theme-border">
-                  <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 rounded-lg bg-theme-background/30 text-theme-text hover:bg-theme-background/50 transition-colors">Cancelar</button>
-                  <button type="submit" className="px-6 py-2 rounded-lg btn-brand shadow-lg shadow-theme-primary/20">Guardar cambios</button>
+                <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 mt-6 pt-6 border-t border-theme-border">
+                  <button type="button" onClick={() => setEditing(null)} className="px-6 py-3 rounded-xl bg-theme-background/30 text-theme-text hover:bg-theme-background/50 border border-theme-border transition-colors font-bold text-sm">Cancelar</button>
+                  <button type="submit" className="px-8 py-3 rounded-xl btn-brand shadow-xl shadow-theme-primary/30 font-bold text-sm">Guardar cambios</button>
                 </div>
               </form>
             </motion.div>
@@ -767,18 +847,28 @@ const UsersManager = ({ token, apiBase, role }) => {
 };
 
 const DashboardView = ({ stats, seriesA, seriesB }) => (
-  <div className="space-y-4">
+  <div className="space-y-4 md:space-y-6">
     <StatsPanel stats={stats} seriesA={seriesA} />
     <ChartsPanel seriesA={seriesA} seriesB={seriesB} />
-    <div className="bg-theme-surface border border-theme-border rounded-lg p-4">
-      <div className="text-sm text-theme-text">Resumen</div>
-      <p className="text-theme-textSecondary text-sm mt-2">Este panel presenta una vista general del sistema con métricas clave y gráficos rápidos para decisiones informadas.</p>
-    </div>
+    <motion.div 
+      variants={itemVariants}
+      className="bg-theme-surface border border-theme-border rounded-xl p-4 md:p-6 shadow-sm"
+    >
+      <div className="flex items-center gap-3 mb-2">
+        <div className="p-2 rounded-lg bg-theme-accent/10 text-theme-accent">
+          <Icon name="info" className="w-4 h-4" />
+        </div>
+        <div className="text-sm font-bold text-theme-text uppercase tracking-wider">Resumen del sistema</div>
+      </div>
+      <p className="text-theme-textSecondary text-xs md:text-sm leading-relaxed">
+        Este panel presenta una vista general del sistema con métricas clave y gráficos rápidos. GlobeTrek te permite gestionar reservas de forma eficiente y supervisar el rendimiento de tu agencia en tiempo real.
+      </p>
+    </motion.div>
   </div>
 );
 
 const Dashboard = ({ token, role, onSignOut }) => {
-  const apiBase = 'http://127.0.0.1:8000';
+  const apiBase = 'https://globetrek.cloud';
   const [view, setView] = useState('dashboard');
   const [bookingToEdit, setBookingToEdit] = useState(null);
   const [stats, setStats] = useState({ bookings: 0, receipts: 0, employees: 0, admins: 0 });
@@ -858,19 +948,19 @@ const Dashboard = ({ token, role, onSignOut }) => {
   return (
     <div className="min-h-screen bg-theme-background">
       <Topbar view={view} setView={setView} role={role} onSignOut={onSignOut} mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-6 space-y-6 mobile-touch mobile-smooth-scroll mobile-text-adjust safe-area-bottom">
+      <main className="max-w-6xl mx-auto px-4 md:px-6 py-4 md:py-6 space-y-4 md:space-y-6 mobile-touch mobile-smooth-scroll mobile-text-adjust safe-area-bottom">
         <motion.section 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="rounded-2xl p-6 bg-gradient-to-r from-theme-surface/80 to-theme-surface/40 backdrop-blur-md border border-theme-border flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm"
+          className="rounded-xl md:rounded-2xl p-4 md:p-6 bg-gradient-to-r from-theme-surface/80 to-theme-surface/40 backdrop-blur-md border border-theme-border flex flex-col md:flex-row md:items-center md:justify-between gap-4 shadow-sm"
         >
           <div className="text-theme-text">
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-theme-text to-theme-textSecondary"
+              className="text-xl sm:text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-theme-text to-theme-textSecondary"
             >
               Bienvenido a GlobeTrek
             </motion.div>
@@ -878,17 +968,17 @@ const Dashboard = ({ token, role, onSignOut }) => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="text-sm md:text-base text-theme-textSecondary mt-1"
+              className="text-xs sm:text-sm md:text-base text-theme-textSecondary mt-1"
             >
               Organiza reservas, usuarios y más desde una interfaz limpia y agradable.
             </motion.div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <motion.button 
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setView('bookings')} 
-              className="px-4 py-2 rounded btn-brand shadow-lg shadow-theme-primary/20"
+              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl btn-brand shadow-lg shadow-theme-primary/20 font-semibold text-sm"
             >
               Ver reservas
             </motion.button>
@@ -897,7 +987,7 @@ const Dashboard = ({ token, role, onSignOut }) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setView('users')} 
-                className="px-4 py-2 rounded bg-theme-background/30 text-theme-text hover:bg-theme-background/40 border border-theme-border"
+                className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-theme-background/30 text-theme-text hover:bg-theme-background/40 border border-theme-border font-semibold text-sm"
               >
                 Gestionar usuarios
               </motion.button>
