@@ -21,7 +21,7 @@ export default function LoginScreen() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${apiBase}/api/auth/token/`, {
+      const res = await fetch(`${apiBase}/users/api/auth/token/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import QRCode from 'qrcode';
 import logoNegro from '../negro.png';
 
 const currency = (v, code = 'EUR') => {
@@ -23,7 +24,7 @@ const roomTypeLabel = (rt) => {
   return rt || '-';
 };
 
-const Bookings = ({ token, apiBase, role, setView }) => {
+const Bookings = ({ token, apiBase, role, setView, onEdit }) => {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState(null);
@@ -32,28 +33,11 @@ const Bookings = ({ token, apiBase, role, setView }) => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [pageSize, setPageSize] = useState(10);
-  const [editing, setEditing] = useState(null);
-  const [showCreate, setShowCreate] = useState(false);
-  const [firstPreview, setFirstPreview] = useState(null);
-  const [secondPreview, setSecondPreview] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
-
-  const [form, setForm] = useState({
-    first_name: '',
-    email: '',
-    address: '',
-    check_in_date: '',
-    check_out_date: '',
-    hotel_name: '',
-    room_type: 'single',
-    location: '',
-    phone: '',
-    room_value: '',
-    rooms_count: 1,
-    guests_count: 1,
-    first_image: null,
-    second_image: null,
-  });
+  const [confirmSendEmail, setConfirmSendEmail] = useState(null);
+  const [showSuccessEmail, setShowSuccessEmail] = useState(null);
+  const [showErrorEmail, setShowErrorEmail] = useState(null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   const authHeaders = (tkn) => ({ Authorization: `Bearer ${tkn}` });
 
@@ -94,7 +78,7 @@ const Bookings = ({ token, apiBase, role, setView }) => {
     setLoading(true);
     setMsg(null);
     try {
-      const url = new URL(`${apiBase}/api/bookings/`);
+      const url = new URL(`${apiBase}/users/api/bookings/`);
       if (q) url.searchParams.set('q', q);
       if (ordering) url.searchParams.set('ordering', ordering);
       url.searchParams.set('page', page.toString());
@@ -115,110 +99,6 @@ const Bookings = ({ token, apiBase, role, setView }) => {
 
   useEffect(() => { if (token && canManage) loadBookings(); }, [token]);
 
-  const handleFileChange = (e) => {
-    const { name, files } = e.target;
-    const file = files && files[0] ? files[0] : null;
-    setForm((f) => ({ ...f, [name]: file }));
-    if (name === 'first_image') {
-      if (firstPreview) URL.revokeObjectURL(firstPreview);
-      setFirstPreview(file ? URL.createObjectURL(file) : null);
-    }
-    if (name === 'second_image') {
-      if (secondPreview) URL.revokeObjectURL(secondPreview);
-      setSecondPreview(file ? URL.createObjectURL(file) : null);
-    }
-  };
-  
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
-  };
-  
-  const handleFileDrop = (name, file) => {
-    if (!file) return;
-    if (!file.type || !file.type.startsWith('image/')) {
-      setMsg({ type: 'error', text: 'Archivo no válido: debe ser una imagen.' });
-      return;
-    }
-    setForm((f) => ({ ...f, [name]: file }));
-    if (name === 'first_image') {
-      if (firstPreview) URL.revokeObjectURL(firstPreview);
-      setFirstPreview(URL.createObjectURL(file));
-    }
-    if (name === 'second_image') {
-      if (secondPreview) URL.revokeObjectURL(secondPreview);
-      setSecondPreview(URL.createObjectURL(file));
-    }
-  };
-  
-  const removeImage = (name) => {
-    setForm((f) => ({ ...f, [name]: null }));
-    if (name === 'first_image') {
-      if (firstPreview) URL.revokeObjectURL(firstPreview);
-      setFirstPreview(null);
-    }
-    if (name === 'second_image') {
-      if (secondPreview) URL.revokeObjectURL(secondPreview);
-      setSecondPreview(null);
-    }
-  };
-
-  const validateForm = () => {
-    const required = ['first_name','email','address','check_in_date','check_out_date','hotel_name','room_type','location','phone','room_value','rooms_count','guests_count'];
-    for (const k of required) {
-      if (!form[k]) return `${k.replace('_',' ')} es requerido`;
-    }
-    if (!/^\+?\d{7,15}$/.test(form.phone)) return 'Teléfono inválido';
-    const inDate = new Date(form.check_in_date);
-    const outDate = new Date(form.check_out_date);
-    if (inDate.toString() === 'Invalid Date' || outDate.toString() === 'Invalid Date') return 'Fechas inválidas';
-    if (outDate < inDate) return 'Check-out debe ser posterior al check-in';
-    const rt = normalizeRoomType(form.room_type);
-    if (!['single','double','triple','suite'].includes(rt)) return 'Tipo de habitación inválido: use individual, doble, triple o suite';
-    return null;
-  };
-
-  const createBooking = async (e) => {
-    e.preventDefault();
-    if (!canCreate) { setMsg({ type: 'error', text: 'No tienes permisos para crear reservas.' }); return; }
-    const err = validateForm();
-    if (err) { setMsg({ type: 'error', text: err }); return; }
-    setLoading(true);
-    setMsg(null);
-    try {
-      const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => { if (v !== null && v !== undefined) fd.append(k, v); });
-      fd.set('room_type', normalizeRoomType(form.room_type));
-      const res = await fetch(`${apiBase}/api/bookings/`, {
-        method: 'POST',
-        headers: authHeaders(token),
-        body: fd,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(extractServerError(data) || 'No se pudo crear la reserva');
-      setMsg({ type: 'success', text: `Reserva creada: ${data.first_name} - ${data.hotel_name}` });
-      setForm({
-        first_name: '', email: '', address: '', check_in_date: '', check_out_date: '', hotel_name: '', room_type: 'single', location: '', phone: '', room_value: '', rooms_count: 1, guests_count: 1, first_image: null, second_image: null,
-      });
-      if (firstPreview) URL.revokeObjectURL(firstPreview);
-      if (secondPreview) URL.revokeObjectURL(secondPreview);
-      setFirstPreview(null);
-      setSecondPreview(null);
-      setShowCreate(false);
-      loadBookings();
-    } catch (e) {
-      setMsg({ type: 'error', text: e.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (firstPreview) URL.revokeObjectURL(firstPreview);
-      if (secondPreview) URL.revokeObjectURL(secondPreview);
-    };
-  }, [firstPreview, secondPreview]);
 
   const createReceiptPdfBlob = async (b) => {
     const inDate = new Date(b.check_in_date);
@@ -227,6 +107,16 @@ const Bookings = ({ token, apiBase, role, setView }) => {
     const nights = isNaN(nightsRaw) ? 7 : Math.max(1, nightsRaw);
     const roomRatePerNight = Number(b.room_value || 90);
     const subtotal = roomRatePerNight * nights;
+    
+    // Generate QR
+    const qrUrlText = `http://localhost:5173/download/${b.code || b.id || ''}`;
+    let qrSrc = null;
+    try {
+      qrSrc = await QRCode.toDataURL(qrUrlText, { width: 140, margin: 1 });
+    } catch (e) {
+      console.error('Error generating QR', e);
+    }
+
     const receiptContent = document.createElement('div');
     receiptContent.style.cssText = `
       background-color: white;
@@ -234,7 +124,8 @@ const Bookings = ({ token, apiBase, role, setView }) => {
       padding: 24px;
       font-family: Arial, sans-serif;
       width: 210mm;
-      height: 297mm;
+      max-height: 296mm;
+      overflow: hidden;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
@@ -248,9 +139,12 @@ const Bookings = ({ token, apiBase, role, setView }) => {
           <div style="display:flex;align-items:center;gap:10px;">
             <img src="${logoNegro}" alt="Globetrek" style="height:48px;display:block;" />
           </div>
-          <div style="text-align:right;font-size:18px;color:#111827;font-weight:700;">
-            <div>Numero de reserva</div>
-            <div style="font-weight:700;">${b.code || b.id || '-'}</div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="text-align:right;font-size:18px;color:#111827;font-weight:700;">
+              <div>Numero de reserva</div>
+              <div style="font-weight:700;">${b.code || b.id || '-'}</div>
+            </div>
+            ${qrSrc ? `<img src="${qrSrc}" alt="QR" style="height:70px;width:70px;border:1px solid #e5e7eb;border-radius:6px;display:block;" />` : ``}
           </div>
         </div>
         <div style="margin-top:6px;color:#6b7280;font-size:12px;">Este es tu recibo</div>
@@ -292,7 +186,7 @@ const Bookings = ({ token, apiBase, role, setView }) => {
         
         <div style="margin-top:18px;">Pago realizado con tarjeta de credito ****${String(b.card_last_digits || '244')}</div>
         <div style="margin-top:12px;">Gracias por tu compra</div>
-        <div>Puedes confirmar tu reserva en nuestras pagina oficial https://globetrek.es/</div>
+        <div>Puedes confirmar tu reserva en nuestras pagina oficial http://localhost:5173/</div>
       </div>
     `;
     document.body.appendChild(receiptContent);
@@ -302,6 +196,7 @@ const Bookings = ({ token, apiBase, role, setView }) => {
     let blob;
     await html2pdf()
       .set({
+        margin: 0,
         filename: `${baseName}.pdf`,
         html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', letterRendering: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
@@ -327,6 +222,11 @@ const Bookings = ({ token, apiBase, role, setView }) => {
       try {
         const res = await fetch(abs, { headers: authHeaders(token) });
         if (!res.ok) return null;
+        const contentType = res.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+          console.warn('Image fetch returned HTML (likely 404 or proxy issue), ignoring:', abs);
+          return null;
+        }
         const blob = await res.blob();
         return await new Promise((done) => {
           const reader = new FileReader();
@@ -340,17 +240,30 @@ const Bookings = ({ token, apiBase, role, setView }) => {
     const img1 = await resolveImageSrc(b.first_image);
     const img2 = await resolveImageSrc(b.second_image);
     const total = typeof nights === 'number' ? subtotal * nights : subtotal;
+
+    // Generate QR
+    const qrUrlText = `http://localhost:5173/download/${b.code || b.id || ''}`;
+    let qrSrc = null;
+    try {
+      qrSrc = await QRCode.toDataURL(qrUrlText, { width: 120, margin: 1 });
+    } catch (e) {
+      console.error('Error generating QR', e);
+    }
+
     const el = document.createElement('div');
-    el.style.cssText = 'background-color:white;color:black;padding:16px;font-family:Arial,sans-serif;width:210mm;height:285mm;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;';
+    el.style.cssText = 'background-color:white;color:black;padding:16px;font-family:Arial,sans-serif;width:210mm;max-height:296mm;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;';
     el.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:2px solid #111111;">
         <div style="display:flex;align-items:center;">
-          <img src="${logoNegro}" alt="GlobeTrek" style="height:60px;display:block;" />
+          <img src="${logoNegro}" alt="GlobeTrek" style="height:80px;display:block;" />
         </div>
-        <div style="text-align:right;background:#ffffff;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;">
-          <p style="margin:0;color:#0f172a;font-size:16px;font-weight:700;">Comprobante reserva</p>
-          <p style="margin:4px 0 0 0;color:#64748b;font-size:12px;">Código de confirmación</p>
-          <p style="margin:2px 0 0 0;font-family:monospace;font-size:20px;font-weight:700;color:#111111;">${b.code || b.id}</p>
+        <div style="display:flex;align-items:center;gap:12px;background:#ffffff;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;">
+          <div style="text-align:right;">
+            <p style="margin:0;color:#0f172a;font-size:16px;font-weight:700;">Comprobante reserva</p>
+            <p style="margin:4px 0 0 0;color:#64748b;font-size:12px;">Código de confirmación</p>
+            <p style="margin:2px 0 0 0;font-family:monospace;font-size:20px;font-weight:700;color:#111111;">${b.code || b.id}</p>
+          </div>
+          ${qrSrc ? `<img src="${qrSrc}" alt="QR" style="height:70px;width:70px;border:1px solid #e5e7eb;border-radius:6px;display:block;" />` : ``}
         </div>
       </div>
       <div>
@@ -414,39 +327,27 @@ const Bookings = ({ token, apiBase, role, setView }) => {
       </div>
       <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
         <div style="background:#111111;color:#ffffff;padding:8px;font-size:12px;font-weight:600;">Información del Pago</div>
-        <table style="width:100%;border-collapse:separate;border-spacing:0;">
-          <thead>
-            <tr style="background:#f1f5f9;color:#0f172a;">
-              <th style="text-align:left;padding:8px;font-size:11px;font-weight:600;">Concepto</th>
-              <th style="text-align:right;padding:8px;font-size:11px;font-weight:600;">Cantidad</th>
-              <th style="text-align:right;padding:8px;font-size:11px;font-weight:600;">Precio/Noche</th>
-              <th style="text-align:right;padding:8px;font-size:11px;font-weight:600;">Subtotal</th>
-            </tr>
-          </thead>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;">
           <tbody>
-            <tr style="background:#f8fafc;">
-              <td style="padding:8px;color:#0f172a;font-size:11px;">Habitación</td>
-              <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${b.rooms_count || 1}</td>
-              <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${currency(b.room_value, b.currency_code || 'EUR')}</td>
-              <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${currency(subtotal, b.currency_code || 'EUR')}</td>
+            <tr style="border-bottom:1px solid #e2e8f0;">
+              <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;width:30%;">Habitación:</td>
+              <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;">${b.rooms_count || 1}</td>
+              <td style="padding:12px;color:#0f172a;font-size:12px;text-align:right;border-left:1px solid #e2e8f0;width:25%;">${currency(subtotal, b.currency_code || 'EUR')}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #e2e8f0;">
+              <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;">Dias:</td>
+              <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;">${typeof nights === 'number' ? nights : '-'}</td>
+              <td style="padding:12px;color:#0f172a;font-size:12px;text-align:right;border-left:1px solid #e2e8f0;">${typeof nights === 'number' ? nights : '-'}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #e2e8f0;">
+              <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;">Huéspedes:</td>
+              <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;">${b.guests_count || 1}</td>
+              <td style="padding:12px;color:#0f172a;font-size:12px;text-align:right;border-left:1px solid #e2e8f0;">-</td>
             </tr>
             <tr>
-              <td style="padding:8px;color:#0f172a;font-size:11px;">Huéspedes</td>
-              <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${b.guests_count || 1}</td>
-              <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">-</td>
-              <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">-</td>
-            </tr>
-            <tr>
-              <td style="padding:8px;color:#0f172a;font-size:11px;">Días</td>
-              <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${typeof nights === 'number' ? nights : '-'}</td>
-              <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${typeof nights === 'number' ? currency(b.room_value, b.currency_code || 'EUR') : '-'}</td>
-              <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${typeof nights === 'number' ? currency(subtotal * nights, b.currency_code || 'EUR') : '-'}</td>
-            </tr>
-            <tr style="background:#e2e8f0;">
-              <td style="padding:8px;font-size:11px;font-weight:700;color:#0f172a;">Total</td>
-              <td style="padding:8px;font-size:11px;color:#0f172a;text-align:right;">-</td>
-              <td style="padding:8px;font-size:11px;color:#0f172a;text-align:right;">-</td>
-              <td style="padding:8px;font-size:11px;font-weight:700;color:#111111;text-align:right;">${currency(total, b.currency_code || 'EUR')}</td>
+              <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;">Total:</td>
+              <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;"></td>
+              <td style="padding:12px;color:#0f172a;font-size:14px;font-weight:700;text-align:right;border-left:1px solid #e2e8f0;">${currency(total, b.currency_code || 'EUR')}</td>
             </tr>
           </tbody>
         </table>
@@ -455,9 +356,9 @@ const Bookings = ({ token, apiBase, role, setView }) => {
       <div style="margin-top:4px;background:#dbeafe;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:12px;color:#0f172a;line-height:1.6;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start;">
           <div>
-            <p style="margin:0;font-weight:700;">El precio final que se muestra es el importe que pagarás al alojamiento.</p>
-            <p style="margin:0;">La entidad emisora puede aplicar un cargo por transacción internacional.</p>
-            <p style="margin:4px 0 0 0;"><span style="font-weight:700;">El alojamiento te cobrará:</span> <span style="font-weight:700;">${currency(total, b.currency_code || 'EUR')}</span></p>
+            <p style="margin:0;font-weight:700;">El precio final que se muestra ya ha sido pagado.</p>
+            <p style="margin:0;">No se realizarán cargos adicionales.</p>
+            <p style="margin:4px 0 0 0;"><span style="font-weight:700;">Total pagado:</span> <span style="font-weight:700;">${currency(total, b.currency_code || 'EUR')}</span></p>
           </div>
           <div>
             <p style="margin:0;">Este alojamiento acepta las siguientes formas de pago: American Express, Visa, Diners Club, Maestro</p>
@@ -475,7 +376,7 @@ const Bookings = ({ token, apiBase, role, setView }) => {
     const baseName = b.code ? `Reserva_${b.code}` : `Reserva_${b.id}`;
     let blob;
     await html2pdf()
-      .set({ filename: `${baseName}.pdf`, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
+      .set({ margin: 0, filename: `${baseName}.pdf`, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
       .from(el)
       .toPdf()
       .get('pdf')
@@ -495,6 +396,15 @@ const Bookings = ({ token, apiBase, role, setView }) => {
       const roomRatePerNight = Number(b.room_value || 90);
       const subtotal = roomRatePerNight * nights;
 
+      // Generate QR
+      const qrUrlText = `http://localhost:5173/download/${b.code || b.id || ''}`;
+      let qrSrc = null;
+      try {
+        qrSrc = await QRCode.toDataURL(qrUrlText, { width: 140, margin: 1 });
+      } catch (e) {
+        console.error('Error generating QR', e);
+      }
+
       // Crear el contenido del recibo basado en el PDF de muestra
       const receiptContent = document.createElement('div');
       receiptContent.style.cssText = `
@@ -503,7 +413,8 @@ const Bookings = ({ token, apiBase, role, setView }) => {
         padding: 24px;
         font-family: Arial, sans-serif;
         width: 210mm;
-        height: 297mm;
+        max-height: 296mm;
+        overflow: hidden;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
@@ -514,11 +425,14 @@ const Bookings = ({ token, apiBase, role, setView }) => {
       receiptContent.innerHTML = `
         <div style="height:100%;display:flex;flex-direction:column;max-width:80%;margin:0 auto;"><div style="display:flex;justify-content:space-between;align-items:center;">
           <div style="display:flex;align-items:center;gap:10px;">
-            <img src="${logoNegro}" alt="Globetrek" style="height:26px;display:block;" />
+            <img src="${logoNegro}" alt="Globetrek" style="height:50px;display:block;" />
           </div>
-          <div style="text-align:right;font-size:12px;color:#111827;">
-            <div>Numero de reserva</div>
-            <div style="font-weight:700;">${b.code || b.id || '-'}</div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="text-align:right;font-size:12px;color:#111827;">
+              <div>Numero de reserva</div>
+              <div style="font-weight:700;">${b.code || b.id || '-'}</div>
+            </div>
+            ${qrSrc ? `<img src="${qrSrc}" alt="QR" style="height:70px;width:70px;border:1px solid #e5e7eb;border-radius:6px;display:block;" />` : ``}
           </div>
         </div>
         <div style="margin-top:6px;color:#6b7280;font-size:12px;">Este es tu recibo</div>
@@ -570,8 +484,9 @@ const Bookings = ({ token, apiBase, role, setView }) => {
 
       // Generar PDF
       await html2pdf()
-        .set({
-          filename: `${baseName}.pdf`,
+      .set({
+        margin: 0,
+        filename: `${baseName}.pdf`,
           html2canvas: {
             scale: 2,
             useCORS: true,
@@ -608,10 +523,29 @@ const Bookings = ({ token, apiBase, role, setView }) => {
 
       const resolveImageSrc = async (u) => {
         if (!u) return null;
-        const abs = /^https?:/.test(u) ? u : `${apiBase}${u}`;
+        let abs = /^https?:/.test(u) ? u : `${apiBase}${u}`;
+        
+        const isElectron = (window as any).electron;
+        
+        // Si estamos en modo local, redirigir URLs de media de la nube al backend local
+        if ((apiBase.includes('127.0.0.1') || apiBase.includes('localhost')) && abs.includes('globetrek.cloud/media')) {
+           abs = abs.replace(/https?:\/\/globetrek\.cloud\/media/, `${apiBase}/media`);
+        }
+        
+        // Proxy hack for localhost CORS (only for browser dev)
+        if (!isElectron && window.location.hostname === 'localhost' && abs.startsWith('/media')) {
+           // Si ya es relativa, dejamos que el proxy de Vite lo maneje, 
+           // pero si apiBase es local, la lógica anterior ya lo convirtió a http://127.0.0.1:8000/media
+           // Si por alguna razón quedó relativa (e.g. venía relativa del backend), está bien.
+        }
         try {
           const res = await fetch(abs, { headers: authHeaders(token) });
           if (!res.ok) return null;
+          const contentType = res.headers.get('content-type');
+          if (contentType && contentType.includes('text/html')) {
+            console.warn('Image fetch returned HTML (likely 404 or proxy issue), ignoring:', abs);
+            return null;
+          }
           const blob = await res.blob();
           return await new Promise((done) => {
             const reader = new FileReader();
@@ -629,17 +563,29 @@ const Bookings = ({ token, apiBase, role, setView }) => {
       const total = typeof nights === 'number' ? subtotal * nights : subtotal;
       const paymentMethod = b.payment_method || 'Tarjeta de crédito';
 
+      // Generate QR
+      const qrUrlText = `http://localhost:5173/download/${b.code || b.id || ''}`;
+      let qrSrc = null;
+      try {
+        qrSrc = await QRCode.toDataURL(qrUrlText, { width: 120, margin: 1 });
+      } catch (e) {
+        console.error('Error generating QR', e);
+      }
+
       const el = document.createElement('div');
-      el.style.cssText = 'background-color:white;color:black;padding:16px;font-family:Arial,sans-serif;width:210mm;height:297mm;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;';
+      el.style.cssText = 'background-color:white;color:black;padding:16px;font-family:Arial,sans-serif;width:210mm;max-height:296mm;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;';
       el.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:2px solid #111111;">
           <div style="display:flex;align-items:center;">
-            <img src="${logoNegro}" alt="GlobeTrek" style="height:60px;display:block;" />
+            <img src="${logoNegro}" alt="GlobeTrek" style="height:80px;display:block;" />
           </div>
-          <div style="text-align:right;background:#ffffff;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;">
-            <p style="margin:0;color:#0f172a;font-size:16px;font-weight:700;">Comprobante reserva</p>
-            <p style="margin:4px 0 0 0;color:#64748b;font-size:12px;">Código de confirmación</p>
-            <p style="margin:2px 0 0 0;font-family:monospace;font-size:20px;font-weight:700;color:#111111;">${b.code || b.id}</p>
+          <div style="display:flex;align-items:center;gap:12px;background:#ffffff;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;">
+            <div style="text-align:right;">
+              <p style="margin:0;color:#0f172a;font-size:16px;font-weight:700;">Comprobante reserva</p>
+              <p style="margin:4px 0 0 0;color:#64748b;font-size:12px;">Código de confirmación</p>
+              <p style="margin:2px 0 0 0;font-family:monospace;font-size:20px;font-weight:700;color:#111111;">${b.code || b.id}</p>
+            </div>
+            ${qrSrc ? `<img src="${qrSrc}" alt="QR" style="height:70px;width:70px;border:1px solid #e5e7eb;border-radius:6px;display:block;" />` : ``}
           </div>
         </div>
 
@@ -709,39 +655,27 @@ const Bookings = ({ token, apiBase, role, setView }) => {
 
         <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
           <div style="background:#111111;color:#ffffff;padding:8px;font-size:12px;font-weight:600;">Información del Pago</div>
-          <table style="width:100%;border-collapse:separate;border-spacing:0;">
-            <thead>
-              <tr style="background:#f1f5f9;color:#0f172a;">
-                <th style="text-align:left;padding:8px;font-size:11px;font-weight:600;">Concepto</th>
-                <th style="text-align:right;padding:8px;font-size:11px;font-weight:600;">Cantidad</th>
-                <th style="text-align:right;padding:8px;font-size:11px;font-weight:600;">Precio/Noche</th>
-                <th style="text-align:right;padding:8px;font-size:11px;font-weight:600;">Subtotal</th>
-              </tr>
-            </thead>
+          <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;">
             <tbody>
-              <tr style="background:#f8fafc;">
-                <td style="padding:8px;color:#0f172a;font-size:11px;">Habitación</td>
-                <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${b.rooms_count || 1}</td>
-                <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${currency(b.room_value, b.currency_code || 'EUR')}</td>
-                <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${currency(subtotal, b.currency_code || 'EUR')}</td>
+              <tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;width:30%;">Habitación:</td>
+                <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;">${b.rooms_count || 1}</td>
+                <td style="padding:12px;color:#0f172a;font-size:12px;text-align:right;border-left:1px solid #e2e8f0;width:25%;">${currency(b.room_value || 0, b.currency_code || 'EUR')}</td>
+              </tr>
+              <tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;">Dias:</td>
+                <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;">${typeof nights === 'number' ? nights : '-'}</td>
+                <td style="padding:12px;color:#0f172a;font-size:12px;text-align:right;border-left:1px solid #e2e8f0;">${typeof nights === 'number' ? nights : '-'}</td>
+              </tr>
+              <tr style="border-bottom:1px solid #e2e8f0;">
+                <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;">Huéspedes:</td>
+                <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;">${b.guests_count || 1}</td>
+                <td style="padding:12px;color:#0f172a;font-size:12px;text-align:right;border-left:1px solid #e2e8f0;">-</td>
               </tr>
               <tr>
-                <td style="padding:8px;color:#0f172a;font-size:11px;">Días</td>
-                <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${typeof nights === 'number' ? nights : '-'}</td>
-                <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${typeof nights === 'number' ? currency(b.room_value, b.currency_code || 'EUR') : '-'}</td>
-                <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${typeof nights === 'number' ? currency(subtotal * nights, b.currency_code || 'EUR') : '-'}</td>
-              </tr>
-              <tr style="background:#f8fafc;">
-                <td style="padding:8px;color:#0f172a;font-size:11px;">Huéspedes</td>
-                <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${b.guests_count || 1}</td>
-                <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">-</td>
-                <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">-</td>
-              </tr>
-              <tr style="background:#e2e8f0;">
-                <td style="padding:8px;font-size:11px;font-weight:700;color:#0f172a;">Total</td>
-                <td style="padding:8px;font-size:11px;color:#0f172a;text-align:right;">-</td>
-                <td style="padding:8px;font-size:11px;color:#0f172a;text-align:right;">-</td>
-                <td style="padding:8px;font-size:11px;font-weight:700;color:#111111;text-align:right;">${currency(total, b.currency_code || 'EUR')}</td>
+                <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;">Total:</td>
+                <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;"></td>
+                <td style="padding:12px;color:#0f172a;font-size:14px;font-weight:700;text-align:right;border-left:1px solid #e2e8f0;">${currency(total, b.currency_code || 'EUR')}</td>
               </tr>
             </tbody>
           </table>
@@ -750,9 +684,9 @@ const Bookings = ({ token, apiBase, role, setView }) => {
         <div style="margin-top:4px;background:#dbeafe;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:12px;color:#0f172a;line-height:1.6;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start;">
             <div>
-              <p style="margin:0;font-weight:700;">El precio final que se muestra es el importe que pagarás al alojamiento.</p>
-              <p style="margin:0;">La entidad emisora puede aplicar un cargo por transacción internacional.</p>
-              <p style="margin:4px 0 0 0;"><span style="font-weight:700;">El alojamiento te cobrará:</span> <span style="font-weight:700;">${currency(total, b.currency_code || 'EUR')}</span></p>
+              <p style="margin:0;font-weight:700;">El precio final que se muestra ya ha sido pagado.</p>
+              <p style="margin:0;">No se realizarán cargos adicionales.</p>
+              <p style="margin:4px 0 0 0;"><span style="font-weight:700;">Total pagado:</span> <span style="font-weight:700;">${currency(total, b.currency_code || 'EUR')}</span></p>
             </div>
             <div>
               <p style="margin:0;">Este alojamiento acepta las siguientes formas de pago: American Express, Visa, Diners Club, Maestro</p>
@@ -771,7 +705,7 @@ const Bookings = ({ token, apiBase, role, setView }) => {
       const html2pdf = mod.default || mod;
       const baseName = b.code ? `Reserva_${b.code}` : `Reserva_${b.id}`;
       await html2pdf()
-        .set({ filename: `${baseName}.pdf`, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
+        .set({ margin: 0, filename: `${baseName}.pdf`, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
         .from(el)
         .save();
 
@@ -781,46 +715,10 @@ const Bookings = ({ token, apiBase, role, setView }) => {
     }
   };
 
-  const startEdit = (b) => {
-    setEditing({ ...b });
-  };
-
-  const submitEdit = async (e) => {
-    e.preventDefault();
-    if (!editing) return;
-    setLoading(true);
-    setMsg(null);
-    try {
-      const fd = new FormData();
-      ['first_name','email','address','check_in_date','check_out_date','hotel_name','room_type','location','phone','room_value','rooms_count','guests_count','currency_code'].forEach((k) => {
-        if (editing[k] !== undefined && editing[k] !== null) fd.append(k, editing[k]);
-      });
-      if (editing.room_type !== undefined && editing.room_type !== null) {
-        fd.set('room_type', normalizeRoomType(editing.room_type));
-      }
-      if (editing.first_image instanceof File) fd.append('first_image', editing.first_image);
-      if (editing.second_image instanceof File) fd.append('second_image', editing.second_image);
-      const res = await fetch(`${apiBase}/api/bookings/${editing.id}/`, {
-        method: 'PATCH',
-        headers: authHeaders(token),
-        body: fd,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(extractServerError(data) || 'No se pudo actualizar');
-      setMsg({ type: 'success', text: 'Reserva actualizada' });
-      setEditing(null);
-      loadBookings();
-    } catch (e) {
-      setMsg({ type: 'error', text: e.message });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const performDelete = async (id) => {
     setMsg(null);
     try {
-      const res = await fetch(`${apiBase}/api/bookings/${id}/`, { method: 'DELETE', headers: authHeaders(token) });
+      const res = await fetch(`${apiBase}/users/api/bookings/${id}/`, { method: 'DELETE', headers: authHeaders(token) });
       let data = null;
       try { data = await res.json(); } catch {}
       if (!res.ok) throw new Error((data && (data.detail || data.message)) || 'No se pudo eliminar');
@@ -832,39 +730,29 @@ const Bookings = ({ token, apiBase, role, setView }) => {
     }
   };
 
-  const removeBooking = async (id) => {
-    return performDelete(id);
-  };
-
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / (pageSize || 1))), [total, pageSize]);
-
-  const generateReceiptPdf = async () => {
-    if (!receiptBooking) return;
-    try {
-      await downloadReceipt(receiptBooking);
-    } catch (e) {
-      setMsg({ type: 'error', text: `Error generando PDF: ${e.message}` });
-    }
-  };
 
   const handleSendEmail = async (b) => {
     try {
-      setMsg({ type: 'info', text: `Generando PDFs y enviando a ${b.email}...` });
+      setIsSendingEmail(true);
       const { blob: receiptBlob, filename: receiptName } = await createReceiptPdfBlob(b);
       const { blob: bookingBlob, filename: bookingName } = await createBookingPdfBlob(b);
       const fd = new FormData();
       fd.append('receipt_pdf', receiptBlob, receiptName);
       fd.append('reservation_pdf', bookingBlob, bookingName);
-      const res = await fetch(`${apiBase}/api/bookings/${b.id}/send-receipt/`, {
+      const res = await fetch(`${apiBase}/users/api/bookings/${b.id}/send-receipt/`, {
         method: 'POST',
         headers: authHeaders(token),
         body: fd,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'Error al enviar el correo');
-      setMsg({ type: 'success', text: 'Se envió el correo correctamente con la reserva y el recibo.' });
+      setShowSuccessEmail(b);
+      setMsg(null);
     } catch (e) {
-      setMsg({ type: 'error', text: e.message });
+      setShowErrorEmail(e.message);
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -955,10 +843,10 @@ const Bookings = ({ token, apiBase, role, setView }) => {
                     <td className="px-4 py-3 text-theme-textSecondary">{b.email}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <motion.button whileHover={{ scale: 1.1 }} onClick={() => startEdit(b)} className="px-2 py-1 text-xs rounded btn-brand">Editar</motion.button>
+                        <motion.button whileHover={{ scale: 1.1 }} onClick={() => onEdit && onEdit(b)} className="px-2 py-1 text-xs rounded btn-brand">Editar</motion.button>
                         <motion.button whileHover={{ scale: 1.1 }} onClick={() => downloadReceipt(b)} className="px-2 py-1 text-xs rounded bg-theme-accent text-white">Recibo</motion.button>
                         <motion.button whileHover={{ scale: 1.1 }} onClick={() => downloadBookingPdf(b)} className="px-2 py-1 text-xs rounded bg-theme-primary text-white">Reserva</motion.button>
-                        <motion.button whileHover={{ scale: 1.1 }} onClick={() => handleSendEmail(b)} className="px-2 py-1 text-xs rounded bg-purple-600 hover:bg-purple-700 text-white">Email</motion.button>
+                        <motion.button whileHover={{ scale: 1.1 }} onClick={() => setConfirmSendEmail(b)} className="px-2 py-1 text-xs rounded bg-purple-600 hover:bg-purple-700 text-white">Email</motion.button>
                         {canDelete && (
                           <motion.button whileHover={{ scale: 1.1 }} onClick={() => setConfirmDelete(b)} className="px-2 py-1 text-xs rounded bg-red-500/10 text-red-600 border border-red-500/20 hover:bg-red-500/20">Eliminar</motion.button>
                         )}
@@ -982,113 +870,6 @@ const Bookings = ({ token, apiBase, role, setView }) => {
           </div>
         </div>
       </motion.div>
-
-      <AnimatePresence>
-        {editing && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50"
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-theme-surface border border-theme-border rounded-xl p-6 w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar"
-            >
-              <div className="text-theme-text font-bold text-xl mb-1">Editar reserva</div>
-              <div className="text-theme-textSecondary text-sm mb-6 pb-4 border-b border-theme-border">
-                {editing.first_name} - <span className="font-medium text-theme-primary">{editing.hotel_name}</span>
-              </div>
-              <form onSubmit={submitEdit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Primer nombre</label>
-                  <input type="text" value={editing.first_name || ''} onChange={(e) => setEditing((x) => ({ ...x, first_name: e.target.value }))} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Correo</label>
-                  <input type="email" value={editing.email || ''} onChange={(e) => setEditing((x) => ({ ...x, email: e.target.value }))} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Dirección</label>
-                  <input type="text" value={editing.address || ''} onChange={(e) => setEditing((x) => ({ ...x, address: e.target.value }))} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Check-in</label>
-                  <div className="relative">
-                    <input type="date" value={editing.check_in_date || ''} onChange={(e) => setEditing((x) => ({ ...x, check_in_date: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Check-out</label>
-                  <div className="relative">
-                    <input type="date" value={editing.check_out_date || ''} onChange={(e) => setEditing((x) => ({ ...x, check_out_date: e.target.value }))} className="w-full px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Hotel</label>
-                  <input type="text" value={editing.hotel_name || ''} onChange={(e) => setEditing((x) => ({ ...x, hotel_name: e.target.value }))} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Tipo de habitación</label>
-                  <input
-                    type="text"
-                    value={editing.room_type || ''}
-                    onChange={(e) => setEditing((x) => ({ ...x, room_type: e.target.value }))}
-                    placeholder="Ej: individual, doble, triple, suite"
-                    className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Ubicación</label>
-                  <input type="text" value={editing.location || ''} onChange={(e) => setEditing((x) => ({ ...x, location: e.target.value }))} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Teléfono</label>
-                  <input type="text" value={editing.phone || ''} onChange={(e) => setEditing((x) => ({ ...x, phone: e.target.value }))} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Valor habitación</label>
-                  <input type="number" value={editing.room_value || ''} onChange={(e) => setEditing((x) => ({ ...x, room_value: e.target.value }))} min={0} step="0.01" className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Habitaciones</label>
-                  <input type="number" value={editing.rooms_count || 1} onChange={(e) => setEditing((x) => ({ ...x, rooms_count: e.target.value }))} min={1} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Huéspedes</label>
-                  <input type="number" value={editing.guests_count || 1} onChange={(e) => setEditing((x) => ({ ...x, guests_count: e.target.value }))} min={1} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Moneda</label>
-                  <select value={editing.currency_code || 'EUR'} onChange={(e) => setEditing((x) => ({ ...x, currency_code: e.target.value }))} className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border focus:outline-none focus:ring-2 focus:ring-theme-accent/40 transition">
-                    <option value="EUR">EUR (€)</option>
-                    <option value="USD">USD ($)</option>
-                    <option value="COP">COP ($)</option>
-                    <option value="MXN">MXN ($)</option>
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Imagen huésped</label>
-                  <input type="file" onChange={(e) => setEditing((x) => ({ ...x, first_image: e.target.files?.[0] || null }))} accept="image/*" className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border" />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-theme-textSecondary uppercase tracking-wide">Imagen hotel</label>
-                  <input type="file" onChange={(e) => setEditing((x) => ({ ...x, second_image: e.target.files?.[0] || null }))} accept="image/*" className="px-3 py-2 rounded-lg bg-theme-background/30 text-theme-text border border-theme-border" />
-                </div>
-
-                <div className="col-span-1 md:col-span-2 lg:col-span-3 flex items-center justify-end gap-3 mt-4 pt-4 border-t border-theme-border">
-                  <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 rounded-lg bg-theme-background/30 text-theme-text hover:bg-theme-background/50 transition-colors">Cancelar</button>
-                  <button type="submit" className="px-6 py-2 rounded-lg btn-brand shadow-lg shadow-theme-primary/20">Guardar cambios</button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {confirmDelete && (
@@ -1123,6 +904,127 @@ const Bookings = ({ token, apiBase, role, setView }) => {
               <div className="p-6 flex items-center justify-end gap-3 border-t border-theme-border bg-theme-background/20">
                 <button className="px-4 py-2 rounded-lg bg-theme-background/50 hover:bg-theme-background/70 text-theme-text transition-colors" onClick={() => setConfirmDelete(null)}>Cancelar</button>
                 <button className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/20 transition-colors" onClick={async () => { const id = confirmDelete.id; setConfirmDelete(null); await performDelete(id); }}>Eliminar</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {confirmSendEmail && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-md bg-theme-surface border border-theme-border rounded-xl overflow-hidden shadow-2xl"
+            >
+              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6">
+                <div className="flex items-center gap-3 text-white">
+                  <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
+                  </div>
+                  <div className="font-bold text-lg">¿Enviar reserva?</div>
+                </div>
+              </div>
+              <div className="p-6 text-theme-text space-y-4">
+                <p>Se enviará el comprobante y el recibo de la reserva al correo electrónico del cliente.</p>
+                <div className="text-sm bg-theme-background/30 border border-theme-border rounded-lg p-4 space-y-2">
+                  <div className="flex justify-between"><span className="text-theme-textSecondary">Cliente:</span> <span className="font-medium">{confirmSendEmail.first_name}</span></div>
+                  <div className="flex justify-between"><span className="text-theme-textSecondary">Email:</span> <span className="font-medium">{confirmSendEmail.email}</span></div>
+                  <div className="flex justify-between"><span className="text-theme-textSecondary">Código:</span> <span className="font-mono">{confirmSendEmail.code || '-'}</span></div>
+                </div>
+              </div>
+              <div className="p-6 flex items-center justify-end gap-3 border-t border-theme-border bg-theme-background/20">
+                <button className="px-4 py-2 rounded-lg bg-theme-background/50 hover:bg-theme-background/70 text-theme-text transition-colors" onClick={() => setConfirmSendEmail(null)}>Cancelar</button>
+                <button className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-600/20 transition-colors flex items-center gap-2" disabled={isSendingEmail} onClick={async () => { const b = confirmSendEmail; await handleSendEmail(b); setConfirmSendEmail(null); }}>
+                  {isSendingEmail ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Enviando...</span>
+                    </>
+                  ) : (
+                    <span>Confirmar envío</span>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showErrorEmail && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-md bg-theme-surface border border-theme-border rounded-xl overflow-hidden shadow-2xl"
+            >
+              <div className="bg-gradient-to-r from-red-600 to-rose-600 p-6">
+                <div className="flex items-center gap-3 text-white">
+                  <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                  </div>
+                  <div className="font-bold text-lg">Error al enviar</div>
+                </div>
+              </div>
+              <div className="p-6 text-theme-text space-y-4 text-center">
+                <p>Ocurrió un problema al intentar enviar el correo.</p>
+                <div className="text-sm bg-red-500/10 border border-red-500/20 text-red-600 rounded-lg p-3">
+                  {showErrorEmail}
+                </div>
+              </div>
+              <div className="p-6 flex items-center justify-center border-t border-theme-border bg-theme-background/20">
+                <button className="px-8 py-2 rounded-lg bg-theme-background/50 hover:bg-theme-background/70 text-theme-text transition-colors" onClick={() => setShowErrorEmail(null)}>Cerrar</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showSuccessEmail && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="w-full max-w-md bg-theme-surface border border-theme-border rounded-xl overflow-hidden shadow-2xl"
+            >
+              <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-6">
+                <div className="flex items-center gap-3 text-white">
+                  <div className="p-2 bg-white/20 rounded-full backdrop-blur-sm">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                  <div className="font-bold text-lg">¡Correo enviado!</div>
+                </div>
+              </div>
+              <div className="p-6 text-theme-text space-y-4 text-center">
+                <p>El correo ha sido enviado correctamente a <span className="font-bold text-theme-text">{showSuccessEmail.email}</span>.</p>
+                <p className="text-sm text-theme-textSecondary">El cliente recibirá su reserva y recibo en breve.</p>
+              </div>
+              <div className="p-6 flex items-center justify-center border-t border-theme-border bg-theme-background/20">
+                <button className="px-8 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20 transition-colors" onClick={() => setShowSuccessEmail(null)}>Entendido</button>
               </div>
             </motion.div>
           </motion.div>

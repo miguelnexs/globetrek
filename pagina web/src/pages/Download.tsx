@@ -2,6 +2,7 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import html2pdf from "html2pdf.js";
+import QRCode from "qrcode";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DashboardCard from "@/components/DashboardCard";
@@ -12,6 +13,16 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const currency = (v: number | string | undefined, code: string = 'EUR') => {
   const n = Number(v || 0);
@@ -32,7 +43,7 @@ const roomTypeLabel = (t?: string) => {
   if (s.includes('individual')) return 'Individual';
   return s;
 };
-const buildReceiptElement = (b: Booking) => {
+const buildReceiptElement = (b: Booking, qrSrc?: string | null) => {
   const inDate = b.check_in_date ? new Date(b.check_in_date) : new Date();
   const outDate = b.check_out_date ? new Date(b.check_out_date) : new Date();
   const nightsRaw = Math.round((outDate.getTime() - inDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -40,16 +51,19 @@ const buildReceiptElement = (b: Booking) => {
   const rate = Number(b.total || 0);
   const total = rate * nights;
   const el = document.createElement('div');
-  el.style.cssText = 'background-color:white;color:black;padding:24px;font-family:Arial,sans-serif;width:210mm;height:297mm;box-sizing:border-box;display:flex;flex-direction:column;line-height:1.4;border-top:8px solid #111111;';
+  el.style.cssText = 'background-color:white;color:black;padding:24px;font-family:Arial,sans-serif;width:210mm;height:296mm;max-height:296mm;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;line-height:1.4;border-top:8px solid #111111;';
   el.innerHTML = `
     <div style="height:100%;display:flex;flex-direction:column;max-width:75%;margin:0 auto;padding-top:18px;padding-bottom:18px;line-height:1.6;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div style="display:flex;align-items:center;gap:10px;">
           <img src="/negro.png" alt="Globetrek" style="height:56px;display:block;" />
         </div>
-        <div style="text-align:right;font-size:20px;color:#111827;font-weight:800;">
-          <div>Numero de reserva</div>
-          <div style="font-weight:800;">${b.code || '-'}</div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="text-align:right;font-size:20px;color:#111827;font-weight:800;">
+            <div>Numero de reserva</div>
+            <div style="font-weight:800;">${b.code || '-'}</div>
+          </div>
+          ${qrSrc ? `<img src="${qrSrc}" alt="QR" style="height:70px;width:70px;border:1px solid #e5e7eb;border-radius:6px;display:block;" />` : ``}
         </div>
       </div>
       <div style="margin-top:10px;color:#6b7280;font-size:13px;">Este es tu recibo</div>
@@ -88,7 +102,7 @@ const buildReceiptElement = (b: Booking) => {
       </div>
       <div style="margin-top:22px;">Pago realizado con tarjeta de credito ****${String(b.card_last_digits || '244')}</div>
       <div style="margin-top:16px;">Gracias por tu compra</div>
-      <div style="margin-top:8px;">Puedes confirmar tu reserva en nuestras pagina oficial https://globetrek.es/</div>
+      <div style="margin-top:8px;">Puedes confirmar tu reserva en nuestras pagina oficial http://localhost:5173/</div>
       <div style="margin-top:22px;font-size:13px;">
         <div style="padding:10px 0;border-top:1px solid #e5e7eb;">El precio final incluye tasas aplicables por el alojamiento.</div>
         <div style="padding:10px 0;border-top:1px solid #e5e7eb;">La entidad emisora puede aplicar un cargo por transacción internacional.</div>
@@ -99,7 +113,7 @@ const buildReceiptElement = (b: Booking) => {
   `;
   return el;
 };
-const buildBookingElement = (b: Booking, firstSrc?: string | null, secondSrc?: string | null) => {
+const buildBookingElement = (b: Booking, firstSrc?: string | null, secondSrc?: string | null, qrSrc?: string | null) => {
   const inDate = b.check_in_date ? new Date(b.check_in_date) : new Date();
   const outDate = b.check_out_date ? new Date(b.check_out_date) : new Date();
   const nightsRaw = Math.round((outDate.getTime() - inDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -107,16 +121,19 @@ const buildBookingElement = (b: Booking, firstSrc?: string | null, secondSrc?: s
   const subtotal = Number(b.total || 0);
   const total = typeof nights === 'number' ? subtotal * nights : subtotal;
   const el = document.createElement('div');
-  el.style.cssText = 'background-color:white;color:black;padding:24px;font-family:Arial,sans-serif;width:210mm;height:297mm;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;';
+  el.style.cssText = 'background-color:white;color:black;padding:24px;font-family:Arial,sans-serif;width:210mm;height:296mm;max-height:296mm;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;';
   el.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:2px solid #111111;">
       <div style="display:flex;align-items:center;">
         <img src="/negro.png" alt="GlobeTrek" style="height:70px;display:block;" />
       </div>
-      <div style="text-align:right;background:#ffffff;padding:12px 16px;border:1px solid #e2e8f0;border-radius:8px;">
-        <p style="margin:0;color:#0f172a;font-size:18px;font-weight:700;">Comprobante reserva</p>
-        <p style="margin:6px 0 0 0;color:#64748b;font-size:13px;">Código de confirmación</p>
-        <p style="margin:4px 0 0 0;font-family:monospace;font-size:24px;font-weight:700;color:#111111;">${b.code || '-'}</p>
+      <div style="background:#ffffff;padding:12px 16px;border:1px solid #e2e8f0;border-radius:8px;display:flex;align-items:center;gap:12px;">
+        <div style="text-align:right;">
+          <p style="margin:0;color:#0f172a;font-size:18px;font-weight:700;">Comprobante reserva</p>
+          <p style="margin:6px 0 0 0;color:#64748b;font-size:13px;">Código de confirmación</p>
+          <p style="margin:4px 0 0 0;font-family:monospace;font-size:24px;font-weight:700;color:#111111;">${b.code || '-'}</p>
+        </div>
+        ${qrSrc ? `<img src="${qrSrc}" alt="QR" style="height:80px;width:80px;display:block;border-radius:4px;" />` : ``}
       </div>
     </div>
     <div>
@@ -180,39 +197,27 @@ const buildBookingElement = (b: Booking, firstSrc?: string | null, secondSrc?: s
     </div>
     <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
       <div style="background:#111111;color:#ffffff;padding:8px;font-size:12px;font-weight:600;">Información del Pago</div>
-      <table style="width:100%;border-collapse:separate;border-spacing:0;">
-        <thead>
-          <tr style="background:#f1f5f9;color:#0f172a;">
-            <th style="text-align:left;padding:8px;font-size:11px;font-weight:600;">Concepto</th>
-            <th style="text-align:right;padding:8px;font-size:11px;font-weight:600;">Cantidad</th>
-            <th style="text-align:right;padding:8px;font-size:11px;font-weight:600;">Precio/Noche</th>
-            <th style="text-align:right;padding:8px;font-size:11px;font-weight:600;">Subtotal</th>
-          </tr>
-        </thead>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;">
         <tbody>
-          <tr style="background:#f8fafc;">
-            <td style="padding:8px;color:#0f172a;font-size:11px;">Habitación</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">1</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${currency(subtotal, 'EUR')}</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${currency(subtotal, 'EUR')}</td>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;width:30%;">Habitación:</td>
+            <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;">${b.rooms_count || 1}</td>
+            <td style="padding:12px;color:#0f172a;font-size:12px;text-align:right;border-left:1px solid #e2e8f0;width:25%;">${currency(subtotal, b.currency_code || 'EUR')}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;">Dias:</td>
+            <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;">${typeof nights === 'number' ? nights : '-'}</td>
+            <td style="padding:12px;color:#0f172a;font-size:12px;text-align:right;border-left:1px solid #e2e8f0;">${typeof nights === 'number' ? nights : '-'}</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e2e8f0;">
+            <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;">Huéspedes:</td>
+            <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;">${b.guests_count || 1}</td>
+            <td style="padding:12px;color:#0f172a;font-size:12px;text-align:right;border-left:1px solid #e2e8f0;">-</td>
           </tr>
           <tr>
-            <td style="padding:8px;color:#0f172a;font-size:11px;">Días</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${typeof nights === 'number' ? nights : '-'}</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${typeof nights === 'number' ? currency(subtotal, 'EUR') : '-'}</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${typeof nights === 'number' ? currency(subtotal * nights, 'EUR') : '-'}</td>
-          </tr>
-          <tr style="background:#f8fafc;">
-            <td style="padding:8px;color:#0f172a;font-size:11px;">Huéspedes</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${b.guests_count || 1}</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">-</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">-</td>
-          </tr>
-          <tr style="background:#e2e8f0;">
-            <td style="padding:8px;font-size:11px;font-weight:700;color:#0f172a;">Total</td>
-            <td style="padding:8px;font-size:11px;color:#0f172a;text-align:right;">-</td>
-            <td style="padding:8px;font-size:11px;color:#0f172a;text-align:right;">-</td>
-            <td style="padding:8px;font-size:11px;font-weight:700;color:#111111;text-align:right;">${currency(total, 'EUR')}</td>
+            <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;">Total:</td>
+            <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;"></td>
+            <td style="padding:12px;color:#0f172a;font-size:14px;font-weight:700;text-align:right;border-left:1px solid #e2e8f0;">${currency(total, b.currency_code || 'EUR')}</td>
           </tr>
         </tbody>
       </table>
@@ -220,9 +225,9 @@ const buildBookingElement = (b: Booking, firstSrc?: string | null, secondSrc?: s
     <div style="margin-top:-8px;background:#dbeafe;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:12px;color:#0f172a;line-height:1.6;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start;">
         <div>
-          <p style="margin:0;font-weight:700;">El precio final que se muestra es el importe que pagarás al alojamiento.</p>
-          <p style="margin:0;">La entidad emisora puede aplicar un cargo por transacción internacional.</p>
-          <p style="margin:4px 0 0 0;"><span style="font-weight:700;">El alojamiento te cobrará:</span> <span style="font-weight:700;">${currency(total, b.currency_code || 'EUR')}</span></p>
+          <p style="margin:0;font-weight:700;">El precio final que se muestra ya ha sido pagado.</p>
+          <p style="margin:0;">No se realizarán cargos adicionales.</p>
+          <p style="margin:4px 0 0 0;"><span style="font-weight:700;">Total pagado:</span> <span style="font-weight:700;">${currency(total, b.currency_code || 'EUR')}</span></p>
         </div>
         <div>
           <p style="margin:0;">Este alojamiento acepta las siguientes formas de pago: American Express, Visa, Diners Club, Maestro</p>
@@ -237,182 +242,69 @@ const buildBookingElement = (b: Booking, firstSrc?: string | null, secondSrc?: s
   return el;
 };
 const downloadReceiptAdmin = async (b: Booking) => {
-  const inDate = b.check_in_date ? new Date(b.check_in_date) : new Date();
-  const outDate = b.check_out_date ? new Date(b.check_out_date) : new Date();
-  const nightsRaw = Math.round((outDate.getTime() - inDate.getTime()) / (1000 * 60 * 60 * 24));
-  const nights = isNaN(nightsRaw) ? 7 : Math.max(1, nightsRaw);
-  const roomRatePerNight = Number(b.total || 0);
-  const subtotal = roomRatePerNight * nights;
-  const el = buildReceiptElement(b);
+    const inDate = b.check_in_date ? new Date(b.check_in_date) : new Date();
+    const outDate = b.check_out_date ? new Date(b.check_out_date) : new Date();
+    const nightsRaw = Math.round((outDate.getTime() - inDate.getTime()) / (1000 * 60 * 60 * 24));
+    const nights = isNaN(nightsRaw) ? 7 : Math.max(1, nightsRaw);
+    const roomRatePerNight = Number(b.total || 0);
+    const subtotal = roomRatePerNight * nights;
+    const qrUrlText = `http://localhost:5173/download/${b.code || ''}`;
+    let qrSrc: string | null = null;
+    try {
+      qrSrc = await QRCode.toDataURL(qrUrlText, { width: 140, margin: 1 });
+    } catch (e) {
+      console.error("Error generating QR", e);
+    }
+    const el = buildReceiptElement(b, qrSrc);
   document.body.appendChild(el);
   await html2pdf()
-    .set({ filename: `Comprobante_${b.code || 'RESERVA'}.pdf`, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
+    .set({ margin: 0, filename: `Comprobante_${b.code || 'RESERVA'}.pdf`, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
     .from(el)
     .save();
   document.body.removeChild(el);
 };
 const downloadBookingAdmin = async (b: Booking) => {
-  const inDate = b.check_in_date ? new Date(b.check_in_date) : new Date();
-  const outDate = b.check_out_date ? new Date(b.check_out_date) : new Date();
-  const nightsRaw = Math.round((outDate.getTime() - inDate.getTime()) / (1000 * 60 * 60 * 24));
-  const nights = isNaN(nightsRaw) ? '-' : Math.max(1, nightsRaw);
-  const subtotal = Number(b.total || 0);
-  const total = typeof nights === 'number' ? subtotal * nights : subtotal;
-  const resolveImageSrc = async (u?: string) => {
-    if (!u) return null;
-    if (/^data:/.test(u)) return u; // ya es Data URL
-    const abs = (() => {
-      if (/^https?:/.test(u)) return u;
-      if (u.startsWith('/')) return `https://globetrek.cloud${u}`;
-      const withMedia = u.startsWith('media/') ? u : `media/${u}`;
-      return `https://globetrek.cloud/${withMedia}`;
-    })();
+    const inDate = b.check_in_date ? new Date(b.check_in_date) : new Date();
+    const outDate = b.check_out_date ? new Date(b.check_out_date) : new Date();
+    const nightsRaw = Math.round((outDate.getTime() - inDate.getTime()) / (1000 * 60 * 60 * 24));
+    const nights = isNaN(nightsRaw) ? '-' : Math.max(1, nightsRaw);
+    const subtotal = Number(b.total || 0);
+    const total = typeof nights === 'number' ? subtotal * nights : subtotal;
+    const resolveImageSrc = async (u?: string) => {
+      if (!u) return null;
+      if (/^data:/.test(u)) return u; // ya es Data URL
+      const abs = (() => {
+        if (/^https?:/.test(u)) return u;
+        if (u.startsWith('/')) return `http://127.0.0.1:8000${u}`;
+        const withMedia = u.startsWith('media/') ? u : `media/${u}`;
+        return `http://127.0.0.1:8000/${withMedia}`;
+      })();
+      try {
+        const res = await fetch(abs);
+        if (!res.ok) return null;
+        const blob = await res.blob();
+        return await new Promise<string>((done) => {
+          const reader = new FileReader();
+          reader.onloadend = () => done(String(reader.result || ''));
+          reader.readAsDataURL(blob);
+        });
+      } catch {
+        return null;
+      }
+    };
+    const firstSrc = await resolveImageSrc(b.first_image);
+    const secondSrc = await resolveImageSrc(b.second_image);
+    const qrUrlText = `http://localhost:5173/download/${b.code || ''}`;
+    let qrSrc: string | null = null;
     try {
-      const res = await fetch(abs);
-      if (!res.ok) return null;
-      const blob = await res.blob();
-      return await new Promise<string>((done) => {
-        const reader = new FileReader();
-        reader.onloadend = () => done(String(reader.result || ''));
-        reader.readAsDataURL(blob);
-      });
-    } catch {
-      return null;
+      qrSrc = await QRCode.toDataURL(qrUrlText, { width: 120, margin: 1 });
+    } catch (e) {
+      console.error("Error generating QR", e);
     }
-  };
-  const firstSrc = await resolveImageSrc(b.first_image);
-  const secondSrc = await resolveImageSrc(b.second_image);
-  const el = document.createElement('div');
-  el.style.cssText = 'background-color:white;color:black;padding:24px;font-family:Arial,sans-serif;width:210mm;height:297mm;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;';
-  el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:2px solid #111111;">
-      <div style="display:flex;align-items:center;">
-        <img src="/negro.png" alt="GlobeTrek" style="height:70px;display:block;" />
-      </div>
-      <div style="text-align:right;background:#ffffff;padding:12px 16px;border:1px solid #e2e8f0;border-radius:8px;">
-        <p style="margin:0;color:#0f172a;font-size:18px;font-weight:700;">Comprobante reserva</p>
-        <p style="margin:6px 0 0 0;color:#64748b;font-size:13px;">Código de confirmación</p>
-        <p style="margin:4px 0 0 0;font-family:monospace;font-size:24px;font-weight:700;color:#111111;">${b.code || '-'}</p>
-      </div>
-    </div>
-    <div>
-      <p style="margin:0;color:#0f172a;font-size:14px;">Estimado/a <span style="font-weight:600;">${b.first_name || '-'}</span>, su reserva está confirmada.</p>
-    </div>
-    <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start;">
-      <div style="background:#f8fafc;padding:12px;border-radius:6px;">
-        <div style="position:relative;width:100%;height:150px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:8px;">
-          ${firstSrc ? `<img src="${firstSrc}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;" />` : `<span style="color:#94a3b8;font-size:12px;">Sin imagen</span>`}
-        </div>
-      </div>
-      <div style="background:#f8fafc;padding:12px;border-radius:6px;">
-        <div style="margin-bottom:10px;color:#0f172a;font-size:26px;font-weight:900;letter-spacing:0.3px;">${b.hotel_name || '-'}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-family:'Calibri',sans-serif;">
-          <div style="grid-column:1 / span 2;">
-            <div style="color:black;font-size:12px;font-weight:700;">Dirección</div>
-            <div style="color:#0f172a;font-size:12px;">${b.address || '-'}</div>
-          </div>
-          <div>
-            <div style="color:black;font-size:12px;font-weight:700;">Check-in</div>
-            <div style="color:#0f172a;font-size:12px;">${b.check_in_date || '-'}</div>
-          </div>
-          <div>
-            <div style="color:black;font-size:12px;font-weight:700;">Check-out</div>
-            <div style="color:#0f172a;font-size:12px;">${b.check_out_date || '-'}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 300px;gap:12px;align-items:start;">
-      <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
-        <div style="background:#111111;color:#ffffff;padding:8px;font-size:12px;font-weight:600;">Resumen de la Reserva</div>
-        <div>
-          <table style="width:100%;border-collapse:separate;border-spacing:0;">
-            <tbody>
-              <tr style="background:#f8fafc;">
-                <td style="padding:8px;color:black;font-size:11px;width:35%;font-weight:bold;">Nombre del hotel</td>
-                <td style="padding:8px;color:black;font-size:11px;">${b.hotel_name || '-'}</td>
-              </tr>
-              <tr>
-                <td style="padding:8px;color:black;font-size:11px;width:35%;font-weight:bold;">Tipo de habitación</td>
-                <td style="padding:8px;color:black;font-size:11px;">${roomTypeLabel(b.room_type)}</td>
-              </tr>
-              <tr style="background:#f8fafc;">
-                <td style="padding:8px;color:black;font-size:11px;width:35%;font-weight:bold;">Ubicación</td>
-                <td style="padding:8px;color:black;font-size:11px;">${b.location || '-'}</td>
-              </tr>
-              <tr>
-                <td style="padding:8px;color:black;font-size:11px;width:35%;font-weight:bold;">Teléfono</td>
-                <td style="padding:8px;color:black;font-size:11px;">${b.phone || '-'}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div style="background:#f8fafc;padding:10px;border-radius:6px;">
-        <div style="position:relative;width:100%;height:120px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:6px;">
-          ${secondSrc ? `<img src="${secondSrc}" style="max-width:100%;max-height:100%;object-fit:contain;display:block;" />` : `<span style="color:#94a3b8;font-size:12px;">Sin imagen</span>`}
-        </div>
-      </div>
-    </div>
-    <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
-      <div style="background:#111111;color:#ffffff;padding:8px;font-size:12px;font-weight:600;">Información del Pago</div>
-      <table style="width:100%;border-collapse:separate;border-spacing:0;">
-        <thead>
-          <tr style="background:#f1f5f9;color:#0f172a;">
-            <th style="text-align:left;padding:8px;font-size:11px;font-weight:600;">Concepto</th>
-            <th style="text-align:right;padding:8px;font-size:11px;font-weight:600;">Cantidad</th>
-            <th style="text-align:right;padding:8px;font-size:11px;font-weight:600;">Precio/Noche</th>
-            <th style="text-align:right;padding:8px;font-size:11px;font-weight:600;">Subtotal</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr style="background:#f8fafc;">
-            <td style="padding:8px;color:#0f172a;font-size:11px;">Habitación</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">1</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${currency(subtotal, 'EUR')}</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${currency(subtotal, 'EUR')}</td>
-          </tr>
-          <tr>
-            <td style="padding:8px;color:#0f172a;font-size:11px;">Días</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${typeof nights === 'number' ? nights : '-'}</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${typeof nights === 'number' ? currency(subtotal, 'EUR') : '-'}</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${typeof nights === 'number' ? currency(subtotal * nights, 'EUR') : '-'}</td>
-          </tr>
-          <tr style="background:#f8fafc;">
-            <td style="padding:8px;color:#0f172a;font-size:11px;">Huéspedes</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">${b.guests_count || 1}</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">-</td>
-            <td style="padding:8px;color:#0f172a;font-size:11px;text-align:right;">-</td>
-          </tr>
-          <tr style="background:#e2e8f0;">
-            <td style="padding:8px;font-size:11px;font-weight:700;color:#0f172a;">Total</td>
-            <td style="padding:8px;font-size:11px;color:#0f172a;text-align:right;">-</td>
-            <td style="padding:8px;font-size:11px;color:#0f172a;text-align:right;">-</td>
-            <td style="padding:8px;font-size:11px;font-weight:700;color:#111111;text-align:right;">${currency(total, 'EUR')}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div style="margin-top:-8px;background:#dbeafe;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:12px;color:#0f172a;line-height:1.6;">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start;">
-        <div>
-          <p style="margin:0;font-weight:700;">El precio final que se muestra es el importe que pagarás al alojamiento.</p>
-          <p style="margin:0;">La entidad emisora puede aplicar un cargo por transacción internacional.</p>
-          <p style="margin:4px 0 0 0;"><span style="font-weight:700;">El alojamiento te cobrará:</span> <span style="font-weight:700;">${currency(total, b.currency_code || 'EUR')}</span></p>
-        </div>
-        <div>
-          <p style="margin:0;">Este alojamiento acepta las siguientes formas de pago: American Express, Visa, Diners Club, Maestro</p>
-        </div>
-        <div style="grid-column:1 / span 2;">
-          <p style="margin:8px 0 0 0;font-weight:600;">Información adicional</p>
-          <p style="margin:2px 0 0 0;color:#334155;">Los suplementos adicionales (como cama supletoria) no están incluidos en el precio total. Si no te presentas o cancelas la reserva, es posible que el alojamiento te cargue los impuestos correspondientes. Recuerda leer la información importante que aparece a continuación, ya que puede contener datos relevantes que no se mencionan aqui.</p>
-        </div>
-      </div>
-    </div>
-  `;
+    const el = buildBookingElement(b, firstSrc, secondSrc, qrSrc);
   document.body.appendChild(el);
   await html2pdf()
-    .set({ filename: `Reserva_${b.code || 'RESERVA'}.pdf`, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
+    .set({ margin: 0, filename: `Reserva_${b.code || 'RESERVA'}.pdf`, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
     .from(el)
     .save();
   document.body.removeChild(el);
@@ -448,14 +340,9 @@ const Download = () => {
   const [generatingReceipt, setGeneratingReceipt] = useState(false);
   const [generatingBooking, setGeneratingBooking] = useState(false);
   const [sending, setSending] = useState(false);
+  const [showConfirmEmail, setShowConfirmEmail] = useState(false);
+  const [showSuccessEmail, setShowSuccessEmail] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const allowed = sessionStorage.getItem('allowed_code');
-    if (!code || allowed !== code) {
-      navigate('/code');
-    }
-  }, [code, navigate]);
 
   useEffect(() => {
     try {
@@ -490,11 +377,26 @@ const Download = () => {
         localStorage.setItem(`booking:${c}`, JSON.stringify(mapped));
         setBooking({ code: c, ...mapped });
       })
-      .catch(() => navigate('/code'));
+      .catch((e) => {
+        console.error("Error fetching booking:", e);
+        const raw = localStorage.getItem(`booking:${c}`);
+        if (!raw) {
+          toast({ variant: 'destructive', title: 'Error', description: 'No se pudo cargar la reserva. Verifique que el backend esté funcionando.' });
+        } else {
+          toast({ variant: 'destructive', title: 'Aviso', description: 'No se pudo actualizar la reserva. Mostrando datos guardados.' });
+        }
+      });
   }, [c, navigate]);
 
   const makeReceiptBlob = async (b: Booking) => {
-    const el = buildReceiptElement(b);
+    const qrUrlText = `http://localhost:5173/download/${b.code || ''}`;
+    let qrSrc: string | null = null;
+    try {
+      qrSrc = await QRCode.toDataURL(qrUrlText, { width: 140, margin: 1 });
+    } catch (e) {
+      console.error("Error generating QR", e);
+    }
+    const el = buildReceiptElement(b, qrSrc);
     document.body.appendChild(el);
     let blob: Blob | undefined;
     await html2pdf().set({ html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(el).toPdf().get('pdf').then((pdf) => { blob = pdf.output('blob'); });
@@ -514,9 +416,9 @@ const Download = () => {
       if (/^data:/.test(u)) return u;
       const abs = (() => {
         if (/^https?:/.test(u)) return u;
-        if (u.startsWith('/')) return `https://globetrek.cloud${u}`;
+        if (u.startsWith('/')) return `http://127.0.0.1:8000${u}`;
         const withMedia = u.startsWith('media/') ? u : `media/${u}`;
-        return `https://globetrek.cloud/${withMedia}`;
+        return `http://127.0.0.1:8000/${withMedia}`;
       })();
       try {
         const res = await fetch(abs);
@@ -533,7 +435,14 @@ const Download = () => {
     };
     const firstSrc = await resolveImageSrc(b.first_image);
     const secondSrc = await resolveImageSrc(b.second_image);
-    const el = buildBookingElement(b, firstSrc, secondSrc);
+    const qrUrlText = `http://localhost:5173/download/${b.code || ''}`;
+    let qrSrc: string | null = null;
+    try {
+      qrSrc = await QRCode.toDataURL(qrUrlText, { width: 120, margin: 1 });
+    } catch (e) {
+      console.error("Error generating QR", e);
+    }
+    const el = buildBookingElement(b, firstSrc, secondSrc, qrSrc);
     document.body.appendChild(el);
     let blob: Blob | undefined;
     await html2pdf().set({ html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(el).toPdf().get('pdf').then((pdf) => { blob = pdf.output('blob'); });
@@ -550,12 +459,13 @@ const Download = () => {
       const fd = new FormData();
       fd.append('receipt_pdf', receiptBlob, receiptName);
       fd.append('reservation_pdf', bookingBlob, bookingName);
-      const res = await fetch(`https://globetrek.cloud/api/bookings/${booking.id}/send-receipt/`, {
+      const res = await fetch(`http://127.0.0.1:8000/users/api/bookings/${booking.id}/send-receipt/`, {
         method: 'POST',
         body: fd,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.detail || 'Error al enviar el correo');
+      setShowSuccessEmail(true);
       toast({ title: 'Correo enviado', description: 'Hemos enviado tu reserva y recibo por email.' });
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Error', description: e.message || 'Error al enviar el correo' });
@@ -568,7 +478,8 @@ const Download = () => {
     if (!path) return null;
     if (path.startsWith('http')) return path;
     if (path.startsWith('/')) return `http://127.0.0.1:8000${path}`;
-    return `http://127.0.0.1:8000/media/${path}`;
+    const withMedia = path.startsWith('media/') ? path : `media/${path}`;
+    return `http://127.0.0.1:8000/${withMedia}`;
   };
 
   const hotelImage = getImageUrl(booking.first_image);
@@ -791,7 +702,7 @@ const Download = () => {
                     {generatingBooking ? 'Generando comprobante...' : 'Descargar Comprobante'}
                   </Button>
                   <Separator className="my-2" />
-                  <Button variant="outline" className="w-full justify-start h-12 text-base" onClick={sendEmail} disabled={sending}>
+                  <Button variant="outline" className="w-full justify-start h-12 text-base" onClick={() => setShowConfirmEmail(true)} disabled={sending}>
                     <Mail className="mr-2 h-5 w-5" />
                     {sending ? 'Enviando correo...' : 'Enviar por Correo'}
                   </Button>
@@ -833,6 +744,51 @@ const Download = () => {
         </div>
       </main>
       <Footer />
+      <AlertDialog open={showConfirmEmail} onOpenChange={setShowConfirmEmail}>
+        <AlertDialogContent className="max-w-[400px] rounded-2xl border-none shadow-2xl">
+          <AlertDialogHeader className="items-center text-center">
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-2 text-blue-600">
+              <Mail className="h-8 w-8" />
+            </div>
+            <AlertDialogTitle className="text-2xl font-bold text-slate-900">¿Enviar reserva?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 text-base">
+              Se enviará el comprobante y el recibo de la reserva al correo electrónico del cliente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center gap-3 mt-4">
+            <AlertDialogCancel className="rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 px-6">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={sendEmail}
+              className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-8 shadow-lg shadow-blue-200"
+            >
+              Confirmar envío
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showSuccessEmail} onOpenChange={setShowSuccessEmail}>
+        <AlertDialogContent className="max-w-[400px] rounded-2xl border-none shadow-2xl">
+          <AlertDialogHeader className="items-center text-center">
+            <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-2 text-green-600">
+              <CheckCircle className="h-8 w-8" />
+            </div>
+            <AlertDialogTitle className="text-2xl font-bold text-slate-900">¡Correo enviado!</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 text-base">
+              La reserva y el recibo han sido enviados correctamente a la dirección de correo electrónico.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center mt-4">
+            <AlertDialogAction 
+              className="rounded-xl bg-green-600 hover:bg-green-700 text-white px-10 shadow-lg shadow-green-200"
+            >
+              Entendido
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

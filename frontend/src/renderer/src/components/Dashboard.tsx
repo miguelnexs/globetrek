@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Bookings from './Bookings';
 import BookingCreate from './BookingCreate';
+import BookingEdit from './BookingEdit';
 import logoBlanco from '../logo.png';
 
 const containerVariants = {
@@ -114,90 +115,113 @@ const Icon = ({ name, className = 'w-5 h-5' }) => {
   return null;
 };
 
-const Topbar = ({ view, setView, role, onSignOut, mobileOpen, setMobileOpen }) => (
-  <>
-    {mobileOpen && (
-      <div
-        className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
-        onClick={() => setMobileOpen(false)}
-      />
-    )}
-    <header className="w-full sticky top-0 z-50 bg-theme-surface/80 backdrop-blur border-b border-theme-border mobile-touch safe-area-top">
-      <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            className="md:hidden p-2 rounded text-theme-text hover:bg-theme-background/30"
-            onClick={() => setMobileOpen(true)}
-          >
-            <Icon name="menu" className="w-6 h-6" />
-          </button>
-          <img src={logoBlanco} alt="GlobeTrek" className="h-8 w-auto" />
-        </div>
-        <nav className="hidden md:flex items-center gap-2">
-          <button
-            onClick={() => setView('dashboard')}
-            className={`px-3 py-2 rounded text-sm transition ${view === 'dashboard' ? 'bg-theme-background/40 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
-          >
-            Inicio
-          </button>
-          <button
-            onClick={() => setView('bookings')}
-            disabled={!(role === 'admin' || role === 'super_admin' || role === 'employee')}
-            className={`px-3 py-2 rounded text-sm transition ${view === 'bookings' ? 'bg-theme-background/40 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
-          >
-            Reservas
-          </button>
-          <button
-            onClick={() => setView('users')}
-            disabled={role !== 'admin' && role !== 'super_admin'}
-            className={`px-3 py-2 rounded text-sm transition ${view === 'users' ? 'bg-theme-background/40 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
-          >
-            Usuarios
-          </button>
-          <button
-            onClick={onSignOut}
-            className="ml-3 px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-sm"
-          >
-            Cerrar sesión
-          </button>
-        </nav>
-        <div className="md:hidden text-xs text-theme-textSecondary">Rol: <span className="font-medium">{role}</span></div>
-      </div>
-      <div className={`md:hidden ${mobileOpen ? 'translate-y-0' : '-translate-y-full'} transition-transform duration-300`}>
-        <div className="bg-theme-surface border-t border-theme-border">
-          <div className="px-4 py-2 space-y-1">
+const Topbar = ({ view, setView, role, onSignOut, mobileOpen, setMobileOpen }) => {
+  const handleMinimize = () => window.electron.ipcRenderer.send('window-minimize');
+  const handleMaximize = () => window.electron.ipcRenderer.send('window-maximize');
+  const handleClose = () => window.electron.ipcRenderer.send('window-close');
+
+  return (
+    <>
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-40 md:hidden backdrop-blur-sm"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+      <header className="w-full sticky top-0 z-50 bg-theme-surface/80 backdrop-blur-md border-b border-theme-border mobile-touch safe-area-top title-bar-drag">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3 h-full no-drag">
             <button
-              onClick={() => { setView('dashboard'); setMobileOpen(false); }}
-              className={`w-full text-left px-3 py-2 rounded ${view === 'dashboard' ? 'bg-theme-background/30 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
+              className="md:hidden p-2 rounded text-theme-text hover:bg-theme-background/30"
+              onClick={() => setMobileOpen(true)}
             >
-              Inicio
+              <Icon name="menu" className="w-6 h-6" />
             </button>
-            <button
-              onClick={() => { setView('bookings'); setMobileOpen(false); }}
-              disabled={!(role === 'admin' || role === 'super_admin' || role === 'employee')}
-              className={`w-full text-left px-3 py-2 rounded ${view === 'bookings' ? 'bg-theme-background/30 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
-            >
-              Reservas
-            </button>
-            <button
-              onClick={() => { setView('users'); setMobileOpen(false); }}
-              disabled={role !== 'admin' && role !== 'super_admin'}
-              className={`w-full text-left px-3 py-2 rounded ${view === 'users' ? 'bg-theme-background/30 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
-            >
-              Usuarios
-            </button>
-            <button
-              onClick={() => { onSignOut(); setMobileOpen(false); }}
-              className="w-full text-left px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white"
-            >
-              Cerrar sesión
-            </button>
+            <img src={logoBlanco} alt="GlobeTrek" className="h-12 w-auto object-contain" />
+          </div>
+          
+          <div className="flex items-center gap-4 h-full no-drag">
+            <nav className="hidden md:flex items-center gap-2">
+              <button
+                onClick={() => setView('dashboard')}
+                className={`px-3 py-2 rounded text-sm transition ${view === 'dashboard' ? 'bg-theme-background/40 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
+              >
+                Inicio
+              </button>
+              <button
+                onClick={() => setView('bookings')}
+                disabled={!(role === 'admin' || role === 'super_admin' || role === 'employee')}
+                className={`px-3 py-2 rounded text-sm transition ${view === 'bookings' ? 'bg-theme-background/40 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
+              >
+                Reservas
+              </button>
+              <button
+                onClick={() => setView('users')}
+                disabled={role !== 'admin' && role !== 'super_admin'}
+                className={`px-3 py-2 rounded text-sm transition ${view === 'users' ? 'bg-theme-background/40 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
+              >
+                Usuarios
+              </button>
+              <button
+                onClick={onSignOut}
+                className="ml-3 px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-sm"
+              >
+                Cerrar sesión
+              </button>
+            </nav>
+            
+            <div className="md:hidden text-xs text-theme-textSecondary mr-2">Rol: <span className="font-medium">{role}</span></div>
+
+            {/* Window Controls */}
+            <div className="flex items-center h-8 ml-2 border-l border-theme-border pl-2">
+              <button onClick={handleMinimize} className="p-2 text-theme-textSecondary hover:text-theme-text transition-colors">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2.25 7.5C2.25 7.22386 2.47386 7 2.75 7H12.25C12.5261 7 12.75 7.22386 12.75 7.5C12.75 7.77614 12.5261 8 12.25 8H2.75C2.47386 8 2.25 7.77614 2.25 7.5Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>
+              </button>
+              <button onClick={handleMaximize} className="p-2 text-theme-textSecondary hover:text-theme-text transition-colors">
+                <svg className="w-3 h-3" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1.5 3C1.22386 3 1 3.22386 1 3.5V11.5C1 11.7761 1.22386 12 1.5 12H13.5C13.7761 12 14 11.7761 14 11.5V3.5C14 3.22386 13.7761 3 13.5 3H1.5ZM0 3.5C0 2.67157 0.671573 2 1.5 2H13.5C14.3284 2 15 2.67157 15 3.5V11.5C15 12.3284 14.3284 13 13.5 13H1.5C0.671573 13 0 12.3284 0 11.5V3.5Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>
+              </button>
+              <button onClick={handleClose} className="p-2 text-theme-textSecondary hover:text-red-500 transition-colors">
+                <svg className="w-4 h-4" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11.7816 4.03157C12.0062 3.80702 12.0062 3.44295 11.7816 3.2184C11.5571 2.99385 11.193 2.99385 10.9685 3.2184L7.50005 6.68682L4.03164 3.2184C3.80708 2.99385 3.44301 2.99385 3.21846 3.2184C2.99391 3.44295 2.99391 3.80702 3.21846 4.03157L6.68688 7.49999L3.21846 10.9684C2.99391 11.193 2.99391 11.557 3.21846 11.7816C3.44301 12.0061 3.80708 12.0061 4.03164 11.7816L7.50005 8.31316L10.9685 11.7816C11.193 12.0061 11.5571 12.0061 11.7816 11.7816C12.0062 11.557 12.0062 11.193 11.7816 10.9684L8.31322 7.49999L11.7816 4.03157Z" fill="currentColor" fillRule="evenodd" clipRule="evenodd"></path></svg>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </header>
-  </>
-);
+        <div className={`md:hidden ${mobileOpen ? 'translate-y-0' : '-translate-y-full'} transition-transform duration-300`}>
+          <div className="bg-theme-surface border-t border-theme-border no-drag">
+            <div className="px-4 py-2 space-y-1">
+              <button
+                onClick={() => { setView('dashboard'); setMobileOpen(false); }}
+                className={`w-full text-left px-3 py-2 rounded ${view === 'dashboard' ? 'bg-theme-background/30 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
+              >
+                Inicio
+              </button>
+              <button
+                onClick={() => { setView('bookings'); setMobileOpen(false); }}
+                disabled={!(role === 'admin' || role === 'super_admin' || role === 'employee')}
+                className={`w-full text-left px-3 py-2 rounded ${view === 'bookings' ? 'bg-theme-background/30 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
+              >
+                Reservas
+              </button>
+              <button
+                onClick={() => { setView('users'); setMobileOpen(false); }}
+                disabled={role !== 'admin' && role !== 'super_admin'}
+                className={`w-full text-left px-3 py-2 rounded ${view === 'users' ? 'bg-theme-background/30 text-theme-text' : 'text-theme-textSecondary hover:text-theme-text hover:bg-theme-background/20'}`}
+              >
+                Usuarios
+              </button>
+              <button
+                onClick={() => { onSignOut(); setMobileOpen(false); }}
+                className="w-full text-left px-3 py-2 rounded bg-red-600 hover:bg-red-700 text-white"
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+    </>
+  );
+};
 
 const KPI = ({ label, value, delta, positive }) => (
   <motion.div 
@@ -402,7 +426,7 @@ const UsersManager = ({ token, apiBase, role }) => {
     setMsg(null);
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/users/`, { headers: authHeaders(token) });
+      const res = await fetch(`${apiBase}/users/api/users/`, { headers: authHeaders(token) });
       let data;
       try {
         data = await res.json();
@@ -429,7 +453,7 @@ const UsersManager = ({ token, apiBase, role }) => {
     setMsg(null);
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/api/users/`, {
+      const res = await fetch(`${apiBase}/users/api/users/`, {
         method: 'POST',
         headers: authHeaders(token),
         body: JSON.stringify({ ...form }),
@@ -449,7 +473,7 @@ const UsersManager = ({ token, apiBase, role }) => {
   const removeEmployee = async (id) => {
     setMsg(null);
     try {
-      const res = await fetch(`${apiBase}/api/users/${id}/`, { method: 'DELETE', headers: authHeaders(token) });
+      const res = await fetch(`${apiBase}/users/api/users/${id}/`, { method: 'DELETE', headers: authHeaders(token) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || data.message || 'No se pudo eliminar');
       setMsg({ type: 'success', text: 'Empleado eliminado' });
@@ -476,7 +500,7 @@ const UsersManager = ({ token, apiBase, role }) => {
     e.preventDefault();
     setMsg(null);
     try {
-      const res = await fetch(`${apiBase}/api/users/${editing.id}/`, {
+      const res = await fetch(`${apiBase}/users/api/users/${editing.id}/`, {
         method: 'PATCH',
         headers: authHeaders(token),
         body: JSON.stringify(editForm),
@@ -754,8 +778,9 @@ const DashboardView = ({ stats, seriesA, seriesB }) => (
 );
 
 const Dashboard = ({ token, role, onSignOut }) => {
-  const apiBase = 'https://globetrek.cloud';
+  const apiBase = 'http://127.0.0.1:8000';
   const [view, setView] = useState('dashboard');
+  const [bookingToEdit, setBookingToEdit] = useState(null);
   const [stats, setStats] = useState({ bookings: 0, receipts: 0, employees: 0, admins: 0 });
   const [seriesA, setSeriesA] = useState([3, 5, 4, 6, 8, 7, 9]);
   const [seriesB, setSeriesB] = useState([5, 3, 6, 2, 4, 7]);
@@ -764,7 +789,7 @@ const Dashboard = ({ token, role, onSignOut }) => {
 
   useEffect(() => {
     const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-    fetch(`${apiBase}/api/stats/`, { headers })
+    fetch(`${apiBase}/users/api/stats/`, { headers })
       .then(async (res) => {
         let data;
         try { data = await res.json(); } catch { data = null; }
@@ -913,7 +938,16 @@ const Dashboard = ({ token, role, onSignOut }) => {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <Bookings token={token} apiBase={apiBase} role={role} setView={setView} />
+              <Bookings 
+                token={token} 
+                apiBase={apiBase} 
+                role={role} 
+                setView={setView} 
+                onEdit={(b) => {
+                  setBookingToEdit(b);
+                  setView('booking_edit');
+                }}
+              />
             </motion.div>
           )}
           {view === 'booking_create' && (
@@ -925,6 +959,17 @@ const Dashboard = ({ token, role, onSignOut }) => {
               transition={{ duration: 0.3 }}
             >
               <BookingCreate token={token} apiBase={apiBase} role={role} setView={setView} />
+            </motion.div>
+          )}
+          {view === 'booking_edit' && (
+            <motion.div
+              key="booking_edit"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+            >
+              <BookingEdit token={token} apiBase={apiBase} role={role} setView={setView} booking={bookingToEdit} />
             </motion.div>
           )}
         </AnimatePresence>

@@ -281,33 +281,27 @@
 
         <div class="payment-box">
             <div class="payment-header">Información del Pago</div>
-            <table class="payment-table">
-                <thead>
-                    <tr>
-                        <th>Concepto</th>
-                        <th class="text-right">Cantidad</th>
-                        <th class="text-right">Precio/Noche</th>
-                        <th class="text-right">Subtotal</th>
-                    </tr>
-                </thead>
+            <table class="payment-table" style="border-collapse:collapse; border:1px solid #e2e8f0;">
                 <tbody>
-                    <tr class="row-light">
-                        <td>Habitación</td>
-                        <td class="text-right">{{ rooms }}</td>
-                        <td class="text-right">{{ rate_display }}</td>
-                        <td class="text-right">{{ subtotal_display }}</td>
+                    <tr style="border-bottom:1px solid #e2e8f0;">
+                        <td style="padding:12px; color:#0f172a; font-size:12px; font-weight:700; width:30%;">Habitación:</td>
+                        <td style="padding:12px; color:#0f172a; font-size:12px; text-align:center;">{{ rooms }}</td>
+                        <td style="padding:12px; color:#0f172a; font-size:12px; text-align:right; border-left:1px solid #e2e8f0; width:25%;">{{ rate_display }}</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #e2e8f0;">
+                        <td style="padding:12px; color:#0f172a; font-size:12px; font-weight:700;">Dias:</td>
+                        <td style="padding:12px; color:#0f172a; font-size:12px; text-align:center;">{% if nights %}{{ nights }}{% else %}-{% endif %}</td>
+                        <td style="padding:12px; color:#0f172a; font-size:12px; text-align:right; border-left:1px solid #e2e8f0;">{% if nights %}{{ nights }}{% else %}-{% endif %}</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #e2e8f0;">
+                        <td style="padding:12px; color:#0f172a; font-size:12px; font-weight:700;">Huéspedes:</td>
+                        <td style="padding:12px; color:#0f172a; font-size:12px; text-align:center;">{{ booking.guests_count }}</td>
+                        <td style="padding:12px; color:#0f172a; font-size:12px; text-align:right; border-left:1px solid #e2e8f0;">-</td>
                     </tr>
                     <tr>
-                        <td>Días</td>
-                        <td class="text-right">{% if nights %}{{ nights }}{% else %}-{% endif %}</td>
-                        <td class="text-right">{% if nights %}{{ rate_display }}{% else %}-{% endif %}</td>
-                        <td class="text-right">{% if nights %}{{ total_display }}{% else %}-{% endif %}</td>
-                    </tr>
-                    <tr class="row-total">
-                        <td class="font-bold">Total</td>
-                        <td class="text-right">-</td>
-                        <td class="text-right">-</td>
-                        <td class="text-right font-bold" style="color:#111111;">{{ total_display }}</td>
+                        <td style="padding:12px; color:#0f172a; font-size:12px; font-weight:700;">Total:</td>
+                        <td style="padding:12px; color:#0f172a; font-size:12px; text-align:center;"></td>
+                        <td style="padding:12px; color:#0f172a; font-size:14px; font-weight:700; text-align:right; border-left:1px solid #e2e8f0;">{{ total_display }}</td>
                     </tr>
                 </tbody>
             </table>

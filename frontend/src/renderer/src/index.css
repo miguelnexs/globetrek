@@ -1187,10 +1187,19 @@
 }
 
 .pulse-enhanced {
-  animation: pulse-enhanced 2s ease-in-out infinite;
-}
+    animation: pulse-enhanced 2s ease-in-out infinite;
+  }
 
-/* Efecto de shimmer mejorado para botones */
+  /* Estilos para el TitleBar de Electron */
+  .title-bar-drag {
+    -webkit-app-region: drag;
+  }
+
+  .no-drag {
+    -webkit-app-region: no-drag;
+  }
+
+  /* Efecto de shimmer mejorado para botones */
 @keyframes shimmer-enhanced {
   0% {
     background-position: -200% 0;

@@ -16,7 +16,7 @@ const Header = () => {
     if (!v) return;
     setError("");
     try {
-      const res = await fetch(`https://globetrek.cloud/api/bookings/by-code/?code=${encodeURIComponent(v)}`);
+      const res = await fetch(`http://127.0.0.1:8000/users/api/bookings/by-code/?code=${encodeURIComponent(v)}`);
       const data: {
         detail?: string;
         first_name?: string;
@@ -26,6 +26,9 @@ const Header = () => {
         check_in_date?: string;
         check_out_date?: string;
         room_value?: number | string;
+        first_image?: string;
+        second_image?: string;
+        currency_code?: string;
       } = await res.json().catch(() => ({} as Record<string, never>));
       if (!res.ok) throw new Error(data?.detail || "Código no encontrado");
       localStorage.setItem(`booking:${v}`, JSON.stringify({
@@ -37,6 +40,9 @@ const Header = () => {
         check_out_date: data.check_out_date,
         total: String(data.room_value ?? ""),
         card_last_digits: "",
+        first_image: data.first_image,
+        second_image: data.second_image,
+        currency_code: data.currency_code,
       }));
       setOpen(false);
       navigate(`/download/${v}`);

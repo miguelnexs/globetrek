@@ -16,5 +16,14 @@ export default defineConfig({
       '@': resolve('src/renderer/src')
     }
   },
+  server: {
+    proxy: {
+      '/media': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  },
   plugins: [react()]
 })

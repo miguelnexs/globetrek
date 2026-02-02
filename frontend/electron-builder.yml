@@ -32,11 +32,8 @@ win:
     - target: nsis
       arch:
         - x64
-    - target: portable
-      arch:
-        - x64
   requestedExecutionLevel: asInvoker
-  artifactName: "${productName}-Setup-${version}.${ext}"
+  artifactName: "${productName}-Installer-${version}.${ext}"
   publisherName: GlobeTrek
   verifyUpdateCodeSignature: false
   sign: false

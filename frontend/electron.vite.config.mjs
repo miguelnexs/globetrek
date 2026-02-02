@@ -47,6 +47,15 @@ export default defineConfig({
       }
     },
     root: resolve('src/renderer'),
+    server: {
+      proxy: {
+        '/media': {
+          target: 'https://globetrek.cloud',
+          changeOrigin: true,
+          secure: false,
+        }
+      }
+    },
     build: {
       outDir: 'out/renderer'
     },

@@ -31,7 +31,7 @@ export default function BookingsScreen() {
     setLoading(true);
     setMsg(null);
     try {
-      const url = new URL(`${apiBase}/api/bookings/`);
+      const url = new URL(`${apiBase}/users/api/bookings/`);
       if (q) url.searchParams.set('q', q);
       if (ordering) url.searchParams.set('ordering', ordering);
       url.searchParams.set('page', page.toString());
@@ -55,7 +55,7 @@ export default function BookingsScreen() {
   const performDelete = async (id: number) => {
     setMsg(null);
     try {
-      const res = await fetch(`${apiBase}/api/bookings/${id}/`, { method: 'DELETE', headers: authHeaders(token!) });
+      const res = await fetch(`${apiBase}/users/api/bookings/${id}/`, { method: 'DELETE', headers: authHeaders(token!) });
       let data = null;
       try { data = await res.json(); } catch {}
       if (!res.ok) throw new Error((data && (data.detail || data.message)) || 'No se pudo eliminar');

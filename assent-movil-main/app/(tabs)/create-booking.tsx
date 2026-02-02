@@ -177,7 +177,8 @@ export default function CreateBookingScreen() {
         formData.append('second_image', { uri, name: filename, type } as any);
       }
 
-      const res = await fetch(`${apiBase}/api/bookings/`, {
+
+      const res = await fetch(`${apiBase}/users/api/bookings/`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

@@ -67,7 +67,7 @@ def ensure_tenant_for_user(user):
             'OPTIONS': {},
             'TIME_ZONE': settings.TIME_ZONE,
         }
-        connections.databases = settings.DATABASES
+        # connections.databases = settings.DATABASES  # Removed to fix AttributeError
 
     # Initialize tables for tenant-routed models (example: PrivateNote)
     try:

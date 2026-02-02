@@ -19,7 +19,7 @@ const Code = () => {
     if (!v) return;
     setError("");
     try {
-      const res = await fetch(`https://globetrek.cloud/api/bookings/by-code/?code=${encodeURIComponent(v)}`);
+      const res = await fetch(`http://127.0.0.1:8000/users/api/bookings/by-code/?code=${encodeURIComponent(v)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data?.detail || "Código no encontrado");
       localStorage.setItem(`booking:${v}`, JSON.stringify({
