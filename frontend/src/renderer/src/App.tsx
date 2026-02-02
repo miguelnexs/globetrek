@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import Dashboard from './components/Dashboard';
 import TitleBar from './components/TitleBar';
 
