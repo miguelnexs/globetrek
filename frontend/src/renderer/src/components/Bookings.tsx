@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import html2pdf from 'html2pdf.js';
 import QRCode from 'qrcode';
 import logoNegro from '../negro.png';
 
@@ -97,19 +98,23 @@ const Bookings = ({ token, apiBase, role, setView, onEdit }) => {
     }
   };
 
-  useEffect(() => { if (token && canManage) loadBookings(); }, [token]);
+  useEffect(() => { 
+    console.log('Bookings component loaded v2.1 - Fix total receipt');
+    if (token && canManage) loadBookings(); 
+  }, [token]);
 
 
   const createReceiptPdfBlob = async (b) => {
     const inDate = new Date(b.check_in_date);
     const outDate = new Date(b.check_out_date);
     const nightsRaw = Math.round((outDate - inDate) / (1000 * 60 * 60 * 24));
-    const nights = isNaN(nightsRaw) ? 7 : Math.max(1, nightsRaw);
-    const roomRatePerNight = Number(b.room_value || 90);
-    const subtotal = roomRatePerNight * nights;
+    const nights = isNaN(nightsRaw) ? 1 : Math.max(1, nightsRaw);
+    const roomRatePerNight = Number(b.room_value || 0);
+    const roomsCount = Number(b.rooms_count || 1);
+    const subtotal = roomRatePerNight * roomsCount * nights;
     
     // Generate QR
-    const qrUrlText = `https://globetrek.cloud/download/${b.code || b.id || ''}`;
+    const qrUrlText = `https://globetreks.es/download/${b.code || b.id || ''}`;
     let qrSrc = null;
     try {
       qrSrc = await QRCode.toDataURL(qrUrlText, { width: 140, margin: 1 });
@@ -186,12 +191,10 @@ const Bookings = ({ token, apiBase, role, setView, onEdit }) => {
         
         <div style="margin-top:18px;">Pago realizado con tarjeta de credito ****${String(b.card_last_digits || '244')}</div>
         <div style="margin-top:12px;">Gracias por tu compra</div>
-        <div>Puedes confirmar tu reserva en nuestras pagina oficial https://globetrek.cloud/</div>
+        <div>Puedes confirmar tu reserva en nuestras pagina oficial https://globetreks.es/</div>
       </div>
     `;
     document.body.appendChild(receiptContent);
-    const mod = await import('html2pdf.js');
-    const html2pdf = mod.default || mod;
     const baseName = b.code ? `Comprobante_${b.code}` : `Comprobante_${b.id}`;
     let blob;
     await html2pdf()
@@ -242,7 +245,7 @@ const Bookings = ({ token, apiBase, role, setView, onEdit }) => {
     const total = typeof nights === 'number' ? subtotal * nights : subtotal;
 
     // Generate QR
-    const qrUrlText = `https://globetrek.cloud/download/${b.code || b.id || ''}`;
+    const qrUrlText = `https://globetreks.es/download/${b.code || b.id || ''}`;
     let qrSrc = null;
     try {
       qrSrc = await QRCode.toDataURL(qrUrlText, { width: 120, margin: 1 });
@@ -371,8 +374,6 @@ const Bookings = ({ token, apiBase, role, setView, onEdit }) => {
       </div>
     `;
     document.body.appendChild(el);
-    const mod = await import('html2pdf.js');
-    const html2pdf = mod.default || mod;
     const baseName = b.code ? `Reserva_${b.code}` : `Reserva_${b.id}`;
     let blob;
     await html2pdf()
@@ -386,127 +387,15 @@ const Bookings = ({ token, apiBase, role, setView, onEdit }) => {
   };
   const downloadReceipt = async (b) => {
     try {
-      // Calcular noches de estadía
-      const inDate = new Date(b.check_in_date);
-      const outDate = new Date(b.check_out_date);
-      const nightsRaw = Math.round((outDate - inDate) / (1000 * 60 * 60 * 24));
-      const nights = isNaN(nightsRaw) ? 7 : Math.max(1, nightsRaw);
-      
-      // Calcular subtotal basado en las noches
-      const roomRatePerNight = Number(b.room_value || 90);
-      const subtotal = roomRatePerNight * nights;
-
-      // Generate QR
-      const qrUrlText = `http://localhost:5173/download/${b.code || b.id || ''}`;
-      let qrSrc = null;
-      try {
-        qrSrc = await QRCode.toDataURL(qrUrlText, { width: 140, margin: 1 });
-      } catch (e) {
-        console.error('Error generating QR', e);
-      }
-
-      // Crear el contenido del recibo basado en el PDF de muestra
-      const receiptContent = document.createElement('div');
-      receiptContent.style.cssText = `
-        background-color: white;
-        color: black;
-        padding: 24px;
-        font-family: Arial, sans-serif;
-        width: 210mm;
-        max-height: 296mm;
-        overflow: hidden;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        line-height: 1.4;
-        border-top: 8px solid #111111;
-      `;
-
-      receiptContent.innerHTML = `
-        <div style="height:100%;display:flex;flex-direction:column;max-width:80%;margin:0 auto;"><div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <img src="${logoNegro}" alt="Globetrek" style="height:50px;display:block;" />
-          </div>
-          <div style="display:flex;align-items:center;gap:12px;">
-            <div style="text-align:right;font-size:12px;color:#111827;">
-              <div>Numero de reserva</div>
-              <div style="font-weight:700;">${b.code || b.id || '-'}</div>
-            </div>
-            ${qrSrc ? `<img src="${qrSrc}" alt="QR" style="height:70px;width:70px;border:1px solid #e5e7eb;border-radius:6px;display:block;" />` : ``}
-          </div>
-        </div>
-        <div style="margin-top:6px;color:#6b7280;font-size:12px;">Este es tu recibo</div>
-        <div style="margin-top:18px;font-size:18px;font-weight:700;">Tus datos</div>
-        <div style="margin-top:8px;">
-          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;">
-            <div>Nombre</div><div style="font-weight:600;">${b.first_name || '-'}</div>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;">
-            <div>Correo</div><div style="font-weight:600;">${b.email || '-'}</div>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;">
-            <div>Fecha</div><div style="font-weight:600;">${new Date().toLocaleDateString('es-ES')}</div>
-          </div>
-        </div>
-        <div style="margin-top:18px;font-size:18px;font-weight:700;">Datos de la Reserva</div>
-        <div style="margin-top:8px;">
-          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;">
-            <div>Nombre del alojamiento</div><div style="text-align:right;font-weight:600;">${b.hotel_name || '-'}</div>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;">
-            <div>Direccion del alojamiento</div><div style="text-align:right;font-weight:600;">${b.address || '-'}</div>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;">
-            <div>Numero de reserva</div><div style="font-weight:600;">${b.code || b.id || '-'}</div>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;">
-            <div>Entrada</div><div style="font-weight:600;">${b.check_in_date || '-'}</div>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;">
-            <div>Salida</div><div style="font-weight:600;">${b.check_out_date || '-'}</div>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #e5e7eb;">
-            <div>Total</div><div style="font-weight:700;">${currency(subtotal * (typeof nights === 'number' ? nights : 1), b.currency_code || 'EUR')}</div>
-          </div>
-        </div>
-        <div style="margin-top:18px;">Pago realizado con tarjeta de credito ****${String(b.card_last_digits || '244')}</div>
-        <div style="margin-top:12px;">Gracias por tu compra</div>
-        <div>Puedes confirmar tu reserva en nuestras pagina oficial https://globetrek.es/</div>
-        </div>
-      `;
-
-      // Agregar al DOM temporalmente
-      document.body.appendChild(receiptContent);
-
-      const mod = await import('html2pdf.js');
-      const html2pdf = mod.default || mod;
-      const baseName = b.code ? `Comprobante_${b.code}` : `Comprobante_${b.id}`;
-
-      // Generar PDF
-      await html2pdf()
-      .set({
-        margin: 0,
-        filename: `${baseName}.pdf`,
-          html2canvas: {
-            scale: 2,
-            useCORS: true,
-            backgroundColor: '#ffffff',
-            letterRendering: true,
-            logging: false
-          },
-          jsPDF: {
-            unit: 'mm',
-            format: 'a4',
-            orientation: 'portrait',
-            compress: true
-          },
-          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        })
-        .from(receiptContent)
-        .save();
-
-      // Limpiar
-      document.body.removeChild(receiptContent);
+      const { blob, filename } = await createReceiptPdfBlob(b);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (e) {
       console.error('Error generando PDF:', e);
       setMsg({ type: 'error', text: 'Error generando el recibo. Por favor intenta de nuevo.' });
@@ -515,201 +404,15 @@ const Bookings = ({ token, apiBase, role, setView, onEdit }) => {
 
   const downloadBookingPdf = async (b) => {
     try {
-      const inDate = new Date(b.check_in_date);
-      const outDate = new Date(b.check_out_date);
-      const nightsRaw = Math.round((outDate - inDate) / (1000 * 60 * 60 * 24));
-      const nights = isNaN(nightsRaw) ? '-' : Math.max(1, nightsRaw);
-      const subtotal = Number(b.room_value || 0) * Number(b.rooms_count || 1);
-
-      const resolveImageSrc = async (u) => {
-        if (!u) return null;
-        let abs = /^https?:/.test(u) ? u : `${apiBase}${u}`;
-        
-        const isElectron = (window as any).electron;
-        
-        // Si estamos en modo local, redirigir URLs de media de la nube al backend local
-        if ((apiBase.includes('127.0.0.1') || apiBase.includes('localhost')) && abs.includes('globetrek.cloud/media')) {
-           abs = abs.replace(/https?:\/\/globetrek\.cloud\/media/, `${apiBase}/media`);
-        }
-        
-        // Proxy hack for localhost CORS (only for browser dev)
-        if (!isElectron && window.location.hostname === 'localhost' && abs.startsWith('/media')) {
-           // Si ya es relativa, dejamos que el proxy de Vite lo maneje, 
-           // pero si apiBase es local, la lógica anterior ya lo convirtió a http://127.0.0.1:8000/media
-           // Si por alguna razón quedó relativa (e.g. venía relativa del backend), está bien.
-        }
-        try {
-          const res = await fetch(abs, { headers: authHeaders(token) });
-          if (!res.ok) return null;
-          const contentType = res.headers.get('content-type');
-          if (contentType && contentType.includes('text/html')) {
-            console.warn('Image fetch returned HTML (likely 404 or proxy issue), ignoring:', abs);
-            return null;
-          }
-          const blob = await res.blob();
-          return await new Promise((done) => {
-            const reader = new FileReader();
-            reader.onloadend = () => done(reader.result);
-            reader.readAsDataURL(blob);
-          });
-        } catch {
-          return null;
-        }
-      };
-
-      const img1 = await resolveImageSrc(b.first_image);
-      const img2 = await resolveImageSrc(b.second_image);
-
-      const total = typeof nights === 'number' ? subtotal * nights : subtotal;
-      const paymentMethod = b.payment_method || 'Tarjeta de crédito';
-
-      // Generate QR
-      const qrUrlText = `http://localhost:5173/download/${b.code || b.id || ''}`;
-      let qrSrc = null;
-      try {
-        qrSrc = await QRCode.toDataURL(qrUrlText, { width: 120, margin: 1 });
-      } catch (e) {
-        console.error('Error generating QR', e);
-      }
-
-      const el = document.createElement('div');
-      el.style.cssText = 'background-color:white;color:black;padding:16px;font-family:Arial,sans-serif;width:210mm;max-height:296mm;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;';
-      el.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:2px solid #111111;">
-          <div style="display:flex;align-items:center;">
-            <img src="${logoNegro}" alt="GlobeTrek" style="height:80px;display:block;" />
-          </div>
-          <div style="display:flex;align-items:center;gap:12px;background:#ffffff;padding:8px 12px;border:1px solid #e2e8f0;border-radius:8px;">
-            <div style="text-align:right;">
-              <p style="margin:0;color:#0f172a;font-size:16px;font-weight:700;">Comprobante reserva</p>
-              <p style="margin:4px 0 0 0;color:#64748b;font-size:12px;">Código de confirmación</p>
-              <p style="margin:2px 0 0 0;font-family:monospace;font-size:20px;font-weight:700;color:#111111;">${b.code || b.id}</p>
-            </div>
-            ${qrSrc ? `<img src="${qrSrc}" alt="QR" style="height:70px;width:70px;border:1px solid #e5e7eb;border-radius:6px;display:block;" />` : ``}
-          </div>
-        </div>
-
-        <div>
-          <p style="margin:0;color:#0f172a;font-size:14px;">Estimado/a <span style="font-weight:600;">${b.first_name || '-'}</span>, su reserva está confirmada.</p>
-        </div>
-
-        <div style="display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start;">
-          <div style="background:#f8fafc;padding:12px;border-radius:6px;">
-            <div style="position:relative;width:100%;height:150px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:8px;">
-              ${img1 ? `<img src="${img1}" alt="Imagen 1" crossorigin="anonymous" style="width:100%;height:100%;object-fit:cover;" />` : `<span style="color:#94a3b8;font-size:12px;">Sin imagen</span>`}
-            </div>
-          </div>
-          <div style="background:#f8fafc;padding:12px;border-radius:6px;">
-            <div style="margin-bottom:10px;color:#0f172a;font-size:26px;font-weight:900;letter-spacing:0.3px;">${b.hotel_name || '-'}</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-family:'Calibri',sans-serif;">
-              <div style="grid-column:1 / span 2;">
-                <div style="color:black;font-size:12px;font-weight:700;">Dirección</div>
-                <div style="color:#0f172a;font-size:12px;">${b.address || '-'}</div>
-              </div>
-              <div>
-                <div style="color:black;font-size:12px;font-weight:700;">Check-in</div>
-                <div style="color:#0f172a;font-size:12px;">${b.check_in_date || '-'}</div>
-              </div>
-              <div>
-                <div style="color:black;font-size:12px;font-weight:700;">Check-out</div>
-                <div style="color:#0f172a;font-size:12px;">${b.check_out_date || '-'}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        
-
-        <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start;">
-          <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
-            <div style="background:#111111;color:#ffffff;padding:10px;font-size:13px;font-weight:600;">Resumen de la Reserva</div>
-            <div>
-            <table style="width:100%;border-collapse:separate;border-spacing:0;">
-              <tbody>
-                <tr style="background:#f8fafc;">
-                  <td style="padding:10px;color:black;font-weight:bold;font-size:12px;width:35%;">Nombre del hotel</td>
-                  <td style="padding:10px;color:black;font-size:12px;">${b.hotel_name || '-'}</td>
-                </tr>
-                <tr>
-                  <td style="padding:10px;color:black;font-weight:bold;font-size:12px;width:35%;">Tipo de habitación</td>
-                  <td style="padding:10px;color:black;font-size:12px;">${roomTypeLabel(b.room_type)}</td>
-                </tr>
-                <tr style="background:#f8fafc;">
-                  <td style="padding:10px;color:black;font-weight:bold;font-size:12px;width:35%;">Ubicación</td>
-                  <td style="padding:10px;color:black;font-size:12px;">${b.location || '-'}</td>
-                </tr>
-                <tr>
-                  <td style="padding:10px;color:black;font-weight:bold;font-size:12px;width:35%;">Teléfono</td>
-                  <td style="padding:10px;color:black;font-size:12px;">${b.phone || '-'}</td>
-                </tr>
-              </tbody>
-            </table>
-            </div>
-          </div>
-          <div style="background:#f8fafc;padding:12px;border-radius:6px;">
-            <div style="position:relative;width:100%;height:200px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:8px;">
-              ${img2 ? `<img src="${img2}" alt="Imagen 2" crossorigin="anonymous" style="width:100%;height:100%;object-fit:cover;" />` : `<span style="color:#94a3b8;font-size:12px;">Sin imagen</span>`}
-            </div>
-          </div>
-        </div>
-
-        <div style="background:#ffffff;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">
-          <div style="background:#111111;color:#ffffff;padding:8px;font-size:12px;font-weight:600;">Información del Pago</div>
-          <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;">
-            <tbody>
-              <tr style="border-bottom:1px solid #e2e8f0;">
-                <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;width:30%;">Habitación:</td>
-                <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;">${b.rooms_count || 1}</td>
-                <td style="padding:12px;color:#0f172a;font-size:12px;text-align:right;border-left:1px solid #e2e8f0;width:25%;">${currency(b.room_value || 0, b.currency_code || 'EUR')}</td>
-              </tr>
-              <tr style="border-bottom:1px solid #e2e8f0;">
-                <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;">Dias:</td>
-                <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;">${typeof nights === 'number' ? nights : '-'}</td>
-                <td style="padding:12px;color:#0f172a;font-size:12px;text-align:right;border-left:1px solid #e2e8f0;">${typeof nights === 'number' ? nights : '-'}</td>
-              </tr>
-              <tr style="border-bottom:1px solid #e2e8f0;">
-                <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;">Huéspedes:</td>
-                <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;">${b.guests_count || 1}</td>
-                <td style="padding:12px;color:#0f172a;font-size:12px;text-align:right;border-left:1px solid #e2e8f0;">-</td>
-              </tr>
-              <tr>
-                <td style="padding:12px;color:#0f172a;font-size:12px;font-weight:700;">Total:</td>
-                <td style="padding:12px;color:#0f172a;font-size:12px;text-align:center;"></td>
-                <td style="padding:12px;color:#0f172a;font-size:14px;font-weight:700;text-align:right;border-left:1px solid #e2e8f0;">${currency(total, b.currency_code || 'EUR')}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div style="margin-top:4px;background:#dbeafe;border:1px solid #e2e8f0;border-radius:8px;padding:10px;font-size:12px;color:#0f172a;line-height:1.6;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start;">
-            <div>
-              <p style="margin:0;font-weight:700;">El precio final que se muestra ya ha sido pagado.</p>
-              <p style="margin:0;">No se realizarán cargos adicionales.</p>
-              <p style="margin:4px 0 0 0;"><span style="font-weight:700;">Total pagado:</span> <span style="font-weight:700;">${currency(total, b.currency_code || 'EUR')}</span></p>
-            </div>
-            <div>
-              <p style="margin:0;">Este alojamiento acepta las siguientes formas de pago: American Express, Visa, Diners Club, Maestro</p>
-            </div>
-            <div style="grid-column:1 / span 2;">
-              <p style="margin:8px 0 0 0;font-weight:600;">Información adicional</p>
-              <p style="margin:2px 0 0 0;color:#334155;">Los suplementos adicionales (como cama supletoria) no están incluidos en el precio total. Si no te presentas o cancelas la reserva, es posible que el alojamiento te cargue los impuestos correspondientes. Recuerda leer la información importante que aparece a continuación, ya que puede contener datos relevantes que no se mencionan aqui.</p>
-            </div>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(el);
-
-      const mod = await import('html2pdf.js');
-      const html2pdf = mod.default || mod;
-      const baseName = b.code ? `Reserva_${b.code}` : `Reserva_${b.id}`;
-      await html2pdf()
-        .set({ margin: 0, filename: `${baseName}.pdf`, html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
-        .from(el)
-        .save();
-
-      document.body.removeChild(el);
+      const { blob, filename } = await createBookingPdfBlob(b);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (e) {
       setMsg({ type: 'error', text: 'Error generando la reserva en PDF. Intenta de nuevo.' });
     }
@@ -855,7 +558,7 @@ const Bookings = ({ token, apiBase, role, setView, onEdit }) => {
                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => onEdit && onEdit(b)} className="p-2 rounded-lg hover:bg-theme-primary/10 text-theme-primary transition-colors" title="Editar">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </motion.button>
-                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => downloadReceipt(b)} className="p-2 rounded-lg hover:bg-theme-accent/10 text-theme-accent transition-colors" title="Recibo">
+                        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => downloadReceipt(b)} className="p-2 rounded-lg hover:bg-theme-accent/10 text-theme-accent transition-colors" title="Recibo Actualizado">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                         </motion.button>
                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => downloadBookingPdf(b)} className="p-2 rounded-lg hover:bg-theme-primary/10 text-theme-primary transition-colors" title="Reserva">

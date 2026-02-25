@@ -2,16 +2,21 @@ import React from 'react';
 import { Cross2Icon, MinusIcon, BoxIcon } from '@radix-ui/react-icons';
 
 const TitleBar = () => {
+  // Check if running in Electron
+  const isElectron = typeof window !== 'undefined' && (window as any).electron;
+
+  if (!isElectron) return null;
+
   const handleMinimize = () => {
-    window.electron.ipcRenderer.send('window-minimize');
+    if (isElectron) (window as any).electron.ipcRenderer.send('window-minimize');
   };
 
   const handleMaximize = () => {
-    window.electron.ipcRenderer.send('window-maximize');
+    if (isElectron) (window as any).electron.ipcRenderer.send('window-maximize');
   };
 
   const handleClose = () => {
-    window.electron.ipcRenderer.send('window-close');
+    if (isElectron) (window as any).electron.ipcRenderer.send('window-close');
   };
 
   return (

@@ -24,7 +24,11 @@ const BookingCreate = ({ token, apiBase, role, setView }) => {
     currency_code: 'EUR',
   });
 
-  const authHeaders = (tkn) => ({ Authorization: `Bearer ${tkn}` });
+  const authHeaders = (tkn) => {
+    if (!tkn) return {};
+    return { Authorization: `Bearer ${tkn.trim()}` };
+  };
+
   const canCreate = role === 'admin' || role === 'super_admin' || role === 'employee';
 
   const normalizeRoomType = (val) => {
@@ -85,15 +89,20 @@ const BookingCreate = ({ token, apiBase, role, setView }) => {
 
   const createBooking = async (e) => {
     e.preventDefault();
+    if (!token) { setMsg({ type: 'error', text: 'No hay sesión activa. Por favor inicie sesión nuevamente.' }); return; }
     if (!canCreate) { setMsg({ type: 'error', text: 'No tienes permisos para crear reservas.' }); return; }
     const err = validateForm(); if (err) { setMsg({ type: 'error', text: err }); return; }
     setLoading(true); setMsg(null);
     try {
       const fd = new FormData(); Object.entries(form).forEach(([k, v]) => { if (v !== null && v !== undefined) fd.append(k, v); });
       fd.set('room_type', normalizeRoomType(form.room_type));
+      
       const res = await fetch(`${apiBase}/users/api/bookings/`, { method: 'POST', headers: authHeaders(token), body: fd });
       const data = await res.json();
+      
+      if (res.status === 401) throw new Error('Sesión expirada o inválida. Por favor inicie sesión nuevamente.');
       if (!res.ok) throw new Error(extractServerError(data) || 'No se pudo crear la reserva');
+      
       const emailMsg = data.email_sent ? ' Se envio el correo correctamente.' : '';
       setMsg({ type: 'success', text: `Reserva creada: ${data.first_name} - ${data.hotel_name}.${emailMsg}` });
       setTimeout(() => setView('bookings'), 800);

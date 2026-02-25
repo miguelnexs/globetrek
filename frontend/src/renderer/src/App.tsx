@@ -13,6 +13,16 @@ const App = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
 
+  useEffect(() => {
+    if (token) localStorage.setItem('token', token);
+    else localStorage.removeItem('token');
+  }, [token]);
+
+  useEffect(() => {
+    if (role) localStorage.setItem('role', role);
+    else localStorage.removeItem('role');
+  }, [role]);
+
   const apiBase = 'https://globetrek.cloud';
   const authHeaders = (tkn) => ({
     'Content-Type': 'application/json',
